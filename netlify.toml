@@ -1,2 +1,5 @@
+# Base is site/ so Netlify never sees the root package.json (os: win32) and skips npm install.
 [build]
-  publish = "site"
+  base = "site"
+  publish = "."
+  command = ""
