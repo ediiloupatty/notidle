@@ -8,12 +8,12 @@ const { spawnSync } = require('child_process');
 
 const pkg = require('../package.json');
 
-const INSTALL_DIR = path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'), 'stayon');
+const INSTALL_DIR = path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'), 'notidle');
 const AGENT = path.join(INSTALL_DIR, 'agent.ps1');
 const CONFIG = path.join(INSTALL_DIR, 'config.json');
 const STARTUP_LNK = path.join(
   process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'),
-  'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'stayon.lnk'
+  'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'notidle.lnk'
 );
 const POWERSHELL = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
 
@@ -27,7 +27,7 @@ const DEFAULT_CONFIG = {
 
 const MODS = { ctrl: 2, control: 2, alt: 1, shift: 4, win: 8 };
 
-const NOT_INSTALLED = 'Not installed. Run: npx stayon';
+const NOT_INSTALLED = 'Not installed. Run: npx notidle';
 
 function parseHotkey(combo) {
   const parts = String(combo).toLowerCase().split('+').map((p) => p.trim()).filter(Boolean);
@@ -82,7 +82,7 @@ function writeConfig(cfg) {
 }
 
 function isRunning() {
-  return ps("try { [void][Threading.Mutex]::OpenExisting('Local\\stayon.agent'); 'yes' } catch { 'no' }").out === 'yes';
+  return ps("try { [void][Threading.Mutex]::OpenExisting('Local\\notidle.agent'); 'yes' } catch { 'no' }").out === 'yes';
 }
 
 function sleep(ms) {
@@ -91,7 +91,7 @@ function sleep(ms) {
 
 function stopAgent() {
   if (!isRunning()) return false;
-  ps("try { [void][Threading.EventWaitHandle]::OpenExisting('Local\\stayon.quit').Set() } catch {}");
+  ps("try { [void][Threading.EventWaitHandle]::OpenExisting('Local\\notidle.quit').Set() } catch {}");
   for (let i = 0; i < 25 && isRunning(); i++) sleep(200);
   return true;
 }
@@ -119,7 +119,7 @@ function createStartupShortcut() {
       '$l.Arguments = \'-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "\' + $env:DC_AGENT + \'"\'',
       '$l.WorkingDirectory = $env:DC_DIR',
       '$l.WindowStyle = 7',
-      '$l.Description = "stayon - keep Discord Online"',
+      '$l.Description = "notidle - keep Discord Online"',
       '$l.Save()',
     ].join('; '),
     { DC_LNK: STARTUP_LNK, DC_PS: POWERSHELL, DC_AGENT: AGENT, DC_DIR: INSTALL_DIR }
@@ -128,7 +128,7 @@ function createStartupShortcut() {
 }
 
 function fail(msg) {
-  console.error('stayon: ' + msg);
+  console.error('notidle: ' + msg);
   process.exit(1);
 }
 
@@ -141,21 +141,21 @@ function install() {
   writeConfig(cfg);
   createStartupShortcut();
   startAgent();
-  console.log(`stayon ${pkg.version} ${existed ? 'updated' : 'installed'}.
+  console.log(`notidle ${pkg.version} ${existed ? 'updated' : 'installed'}.
 
   Press ${cfg.hotkeyLabel} to turn it ON / OFF.
   Tray icon: green = ON, gray = OFF. Left-click it to toggle too.
   Starts automatically when you log in to Windows.
 
-  Change shortcut:  npx stayon hotkey ctrl+shift+f9
-  Remove:           npx stayon uninstall`);
+  Change shortcut:  npx notidle hotkey ctrl+shift+f9
+  Remove:           npx notidle uninstall`);
 }
 
 function uninstall() {
   stopAgent();
   fs.rmSync(STARTUP_LNK, { force: true });
   fs.rmSync(INSTALL_DIR, { recursive: true, force: true });
-  console.log('stayon removed.');
+  console.log('notidle removed.');
 }
 
 function setHotkey(combo) {
@@ -185,22 +185,22 @@ function status() {
   }
   const cfg = readConfig();
   console.log(`Installed:  ${INSTALL_DIR}
-Agent:      ${isRunning() ? 'running (tray icon shows ON/OFF)' : 'not running - start with: npx stayon start'}
+Agent:      ${isRunning() ? 'running (tray icon shows ON/OFF)' : 'not running - start with: npx notidle start'}
 Shortcut:   ${cfg.hotkeyLabel}
 Interval:   ${cfg.intervalSeconds} s
 Autostart:  ${fs.existsSync(STARTUP_LNK) ? 'yes' : 'no'}`);
 }
 
 function help() {
-  console.log(`stayon ${pkg.version} - keep your Discord status Online while you're away.
+  console.log(`notidle ${pkg.version} - keep your Discord status Online while you're away.
 
 Usage:
-  npx stayon                 install (or update) and start
-  npx stayon hotkey <combo>  change shortcut, e.g. ctrl+alt+o (default)
-  npx stayon interval <sec>  idle seconds before each nudge (default 60)
-  npx stayon start | stop    start or quit the background agent
-  npx stayon status          show what's installed and running
-  npx stayon uninstall       remove everything`);
+  npx notidle                 install (or update) and start
+  npx notidle hotkey <combo>  change shortcut, e.g. ctrl+alt+o (default)
+  npx notidle interval <sec>  idle seconds before each nudge (default 60)
+  npx notidle start | stop    start or quit the background agent
+  npx notidle status          show what's installed and running
+  npx notidle uninstall       remove everything`);
 }
 
 function main() {

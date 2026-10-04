@@ -1,4 +1,4 @@
-# stayon agent: tray icon + global hotkey.
+# notidle agent: tray icon + global hotkey.
 # While active, nudges the mouse 1px back and forth whenever the PC has been idle
 # for IntervalSeconds, so Windows' idle timer (which Discord reads) never runs out.
 # Also blocks sleep and screen-off while active.
@@ -22,7 +22,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 
-public class StayOnHotkey : NativeWindow, IDisposable {
+public class NotIdleHotkey : NativeWindow, IDisposable {
     [DllImport("user32.dll")] static extern bool RegisterHotKey(IntPtr hWnd, int id, uint mods, uint vk);
     [DllImport("user32.dll")] static extern bool UnregisterHotKey(IntPtr hWnd, int id);
     const int WM_HOTKEY = 0x0312;
@@ -31,7 +31,7 @@ public class StayOnHotkey : NativeWindow, IDisposable {
     public event EventHandler Pressed;
     public readonly bool Registered;
 
-    public StayOnHotkey(uint mods, uint vk) {
+    public NotIdleHotkey(uint mods, uint vk) {
         CreateHandle(new CreateParams());
         Registered = RegisterHotKey(Handle, 1, mods | MOD_NOREPEAT, vk);
     }
@@ -47,7 +47,7 @@ public class StayOnHotkey : NativeWindow, IDisposable {
     }
 }
 
-public static class StayOn {
+public static class NotIdle {
     [StructLayout(LayoutKind.Sequential)]
     struct MOUSEINPUT { public int dx; public int dy; public uint mouseData; public uint dwFlags; public uint time; public IntPtr dwExtraInfo; }
 
@@ -109,10 +109,10 @@ public static class StayOn {
         active = on;
         SetThreadExecutionState(on ? ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED : ES_CONTINUOUS);
         tray.Icon = on ? iconOn : iconOff;
-        tray.Text = "stayon: " + (on ? "ON" : "OFF") + " (" + hotkeyLabel + ")";
+        tray.Text = "notidle: " + (on ? "ON" : "OFF") + " (" + hotkeyLabel + ")";
         toggleItem.Checked = on;
         if (announce) {
-            tray.ShowBalloonTip(1500, "stayon",
+            tray.ShowBalloonTip(1500, "notidle",
                 on ? "ON - Discord stays Online" : "OFF - normal idle again",
                 ToolTipIcon.None);
         }
@@ -120,9 +120,9 @@ public static class StayOn {
 
     public static void Run(uint mods, uint vk, string label, int intervalSeconds, bool startActive) {
         bool created;
-        using (var mutex = new Mutex(true, @"Local\stayon.agent", out created)) {
+        using (var mutex = new Mutex(true, @"Local\notidle.agent", out created)) {
             if (!created) return;
-            using (var quit = new EventWaitHandle(false, EventResetMode.ManualReset, @"Local\stayon.quit")) {
+            using (var quit = new EventWaitHandle(false, EventResetMode.ManualReset, @"Local\notidle.quit")) {
                 quit.Reset();
                 hotkeyLabel = label;
                 intervalMs = Math.Max(10, intervalSeconds) * 1000;
@@ -144,11 +144,11 @@ public static class StayOn {
                 tray.Visible = true;
                 SetActive(startActive, false);
 
-                var hotkey = new StayOnHotkey(mods, vk);
+                var hotkey = new NotIdleHotkey(mods, vk);
                 hotkey.Pressed += delegate { SetActive(!active, true); };
                 if (!hotkey.Registered) {
-                    tray.ShowBalloonTip(4000, "stayon",
-                        label + " is already used by another app. Pick another: npx stayon hotkey <combo>",
+                    tray.ShowBalloonTip(4000, "notidle",
+                        label + " is already used by another app. Pick another: npx notidle hotkey <combo>",
                         ToolTipIcon.Warning);
                 }
 
@@ -178,5 +178,5 @@ public static class StayOn {
 }
 "@
 
-[StayOn]::Run([uint32]$config.hotkeyMods, [uint32]$config.hotkeyVk, [string]$config.hotkeyLabel,
+[NotIdle]::Run([uint32]$config.hotkeyMods, [uint32]$config.hotkeyVk, [string]$config.hotkeyLabel,
     [int]$config.intervalSeconds, [bool]$config.startActive)
