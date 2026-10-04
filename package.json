@@ -1,10 +1,10 @@
 {
-  "name": "dc.online",
+  "name": "stayon",
   "version": "0.1.0",
   "description": "Keep your Discord status Online (green) while you're away. Toggle with a keyboard shortcut. Windows only.",
   "author": "Edi Loupatty",
   "bin": {
-    "dc-online": "bin/cli.js"
+    "stayon": "bin/cli.js"
   },
   "files": [
     "bin",
