@@ -7,11 +7,21 @@
 
 Keep your Discord status **Online** (green) while you're away from the PC. Toggle it with a keyboard shortcut. Windows only.
 
+## Install
+
+Open PowerShell (press the Windows key, type `powershell`), paste this and press Enter. Nothing else to install:
+
+```powershell
+irm https://raw.githubusercontent.com/ediiloupatty/notidle/main/site/install.ps1 | iex
+```
+
+Or, if you have Node.js:
+
 ```
 npx notidle
 ```
 
-Then press **Ctrl+Alt+O** to turn it on or off. A dot in the system tray shows the state: green = on, gray = off. You can also left-click the dot to toggle.
+Both install the same thing, so you can mix them. Then press **Ctrl+Alt+O** to turn it on or off. A dot in the system tray shows the state: green = on, gray = off. You can also left-click the dot to toggle.
 
 ## How it works
 
@@ -21,7 +31,17 @@ While on, it also stops Windows from sleeping or turning the screen off.
 
 It is a small PowerShell script with a tray icon. It needs no admin rights, sends nothing over the network and doesn't touch Discord itself.
 
-## Commands
+## Uninstall
+
+```powershell
+irm https://raw.githubusercontent.com/ediiloupatty/notidle/main/site/uninstall.ps1 | iex
+```
+
+or `npx notidle uninstall`.
+
+## Commands (with Node.js)
+
+These work no matter which way you installed.
 
 | Command | What it does |
 | --- | --- |

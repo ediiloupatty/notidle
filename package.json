@@ -14,6 +14,10 @@
   "bin": {
     "notidle": "bin/cli.js"
   },
+  "scripts": {
+    "build:site": "node scripts/build-installer.js",
+    "prepublishOnly": "node scripts/build-installer.js"
+  },
   "files": [
     "bin",
     "agent",
