@@ -15,10 +15,29 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Outfit:wght@500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <link rel="preload" href="fonts/outfit.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/figtree.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/jetbrainsmono.woff2" as="font" type="font/woff2" crossorigin>
+  <script>
+    // Hide the page until the fonts are in, so text doesn't jump from fallback to real font (max 1.2 s).
+    (function () {
+      var d = document.documentElement;
+      if (!document.fonts || !document.fonts.load) return;
+      d.classList.add('fonts-loading');
+      var show = function () { d.classList.remove('fonts-loading'); };
+      Promise.race([
+        Promise.all(['700 1em Outfit', '400 1em Figtree', '500 1em "JetBrains Mono"'].map(function (f) { return document.fonts.load(f); })),
+        new Promise(function (r) { setTimeout(r, 1200); })
+      ]).then(show, show);
+    })();
+  </script>
   <style>
+    @font-face { font-family: Outfit; src: url(fonts/outfit.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
+    @font-face { font-family: Figtree; src: url(fonts/figtree.woff2) format("woff2"); font-weight: 300 900; font-display: swap; }
+    @font-face { font-family: "JetBrains Mono"; src: url(fonts/jetbrainsmono.woff2) format("woff2"); font-weight: 500; font-display: swap; }
+    html.fonts-loading body { opacity: 0; }
+    body { transition: opacity .25s ease; }
+
     :root {
       --bg: #0e0f11;
       --text: #ececf1;
@@ -75,7 +94,15 @@
         0 0 18px rgba(35,165,90,.55);
     }
 
-    header { display: flex; align-items: center; gap: 10px; padding: 28px 0; }
+    .top {
+      position: sticky; top: 0; z-index: 10;
+      background: color-mix(in srgb, var(--bg) 82%, transparent);
+      -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+      border-bottom: 1px solid transparent;
+      transition: border-color .2s;
+    }
+    .top.scrolled { border-bottom-color: var(--line); }
+    header { display: flex; align-items: center; gap: 10px; padding: 20px; max-width: 720px; margin: 0 auto; }
     /* wordmark: the "o" in notidle is the glowing status ring */
     .brand { display: inline-flex; align-items: center; font: 700 26px/1 Outfit, system-ui, sans-serif; letter-spacing: -0.02em; text-decoration: none; }
     .brand svg { width: 0.64em; height: 0.64em; margin: 0.14em 0.03em 0; overflow: visible; }
@@ -108,6 +135,46 @@
     }
     .copy:hover { border-color: var(--muted); }
     .note { font-size: 14px; color: var(--muted); margin-top: 14px; }
+
+    /* illustration: two avatars while you're away; without notidle one goes Idle */
+    .illus { padding: 16px 0 56px; }
+    .away { text-align: center; font-size: 14px; color: var(--muted); margin-bottom: 28px; }
+    .away b { font: 500 15px "JetBrains Mono", ui-monospace, monospace; color: var(--text); font-variant-numeric: tabular-nums; }
+    .vs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .side { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 8px 12px; text-align: center; }
+    .side + .side { border-left: 1px solid var(--line); }
+    .avatar { position: relative; width: 96px; height: 96px; }
+    .face {
+      width: 100%; height: 100%; border-radius: 50%; overflow: hidden;
+      background: radial-gradient(circle at 34% 28%, #a5a8ff, #6268e8 50%, #2f3290 100%);
+      box-shadow: inset 0 -6px 14px rgba(0,0,0,.35), inset 0 3px 6px rgba(255,255,255,.25), 0 8px 20px rgba(0,0,0,.25);
+    }
+    .face svg { width: 100%; height: 100%; display: block; }
+    .badge { position: absolute; right: -3px; bottom: -3px; width: 32px; height: 32px; border-radius: 50%; background: var(--bg); display: grid; place-items: center; }
+    .badge i {
+      position: relative; width: 20px; height: 20px; border-radius: 50%; overflow: hidden;
+      background: radial-gradient(circle at 38% 32%, #8ef5b5, #2bb565 50%, #0c5c2d);
+      box-shadow: 0 0 12px rgba(35,165,90,.65);
+      transition: background .5s, box-shadow .5s;
+    }
+    .badge i::after {
+      content: ""; position: absolute; width: 14px; height: 14px; border-radius: 50%;
+      top: -3px; left: -3px; background: var(--bg);
+      transform: scale(0); transition: transform .5s;
+    }
+    .side.is-idle .badge i { background: radial-gradient(circle at 62% 64%, #ffe39a, #f0b232 55%, #a87208); box-shadow: 0 0 12px rgba(240,178,50,.5); }
+    .side.is-idle .badge i::after { transform: scale(1); }
+    .name { font: 600 18px Outfit, system-ui, sans-serif; }
+    .status { font-size: 14px; color: var(--muted); display: grid; }
+    .status span { grid-area: 1 / 1; transition: opacity .4s; }
+    .status .st-idle { opacity: 0; color: #e0a526; }
+    .status .st-on { color: var(--green); }
+    .side.is-idle .st-idle { opacity: 1; }
+    .side.is-idle .st-on { opacity: 0; }
+    .who { font-size: 13px; color: var(--muted); }
+    .who.g { color: var(--green); }
+    .cursor { position: absolute; left: -8px; bottom: 4px; width: 18px; height: 18px; transition: transform .25s; }
+    .cursor.nudge { transform: translateX(4px); }
 
     /* demo: keys press, dot turns green */
     .demo { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; padding: 48px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
@@ -195,7 +262,7 @@
   </style>
 </head>
 <body>
-  <main>
+  <div class="top" id="top">
     <header>
       <svg width="0" height="0" style="position:absolute" aria-hidden="true">
         <defs>
@@ -214,6 +281,8 @@
         <a href="https://www.npmjs.com/package/notidle">npm</a>
       </nav>
     </header>
+  </div>
+  <main>
 
     <div class="hero">
       <h1>Stay <span class="g">green</span><br>while you're away.</h1>
@@ -223,6 +292,31 @@
         <button class="copy" id="copy" type="button">Copy</button>
       </div>
       <div class="note">Windows 10/11 · needs <a href="https://nodejs.org">Node.js</a> · free and open source</div>
+    </div>
+
+    <div class="illus" role="img" aria-label="While you're away, your status goes Idle without notidle and stays Online with notidle">
+      <div class="away">Away from PC <b id="away">00:00</b></div>
+      <div class="vs">
+        <div class="side" id="without">
+          <div class="avatar">
+            <div class="face"><svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="38" r="15" fill="#fff" fill-opacity=".85"/><path d="M20 86c3-17 14-26 28-26s25 9 28 26" fill="#fff" fill-opacity=".85"/></svg></div>
+            <span class="badge"><i></i></span>
+          </div>
+          <div class="name">you</div>
+          <div class="status"><span class="st-on">Online</span><span class="st-idle">Idle</span></div>
+          <div class="who">without notidle</div>
+        </div>
+        <div class="side" id="with">
+          <div class="avatar">
+            <div class="face"><svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="38" r="15" fill="#fff" fill-opacity=".85"/><path d="M20 86c3-17 14-26 28-26s25 9 28 26" fill="#fff" fill-opacity=".85"/></svg></div>
+            <span class="badge"><i></i></span>
+            <svg class="cursor" id="cursor" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3v16l4.5-4.2 3 6.4 3-1.4-3-6.3H18z" fill="#fff" stroke="#111" stroke-width="1.2" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="name">you</div>
+          <div class="status"><span class="st-on">Online</span><span class="st-idle">Idle</span></div>
+          <div class="who g">with notidle</div>
+        </div>
+      </div>
     </div>
 
     <div class="demo" aria-label="Press Ctrl, Alt and O; the tray dot turns green">
@@ -270,6 +364,45 @@
   </main>
 
   <script>
+    // Sticky header gets a hairline once the page scrolls.
+    (function () {
+      var top = document.getElementById('top');
+      var onScroll = function () { top.classList.toggle('scrolled', window.scrollY > 4); };
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    })();
+
+    // Illustration: 0-14 simulated minutes away in 8 s, hold 2.5 s, repeat.
+    // Without notidle goes Idle at 10:00; with notidle the cursor nudges every minute and stays Online.
+    (function () {
+      var away = document.getElementById('away');
+      var without = document.getElementById('without');
+      var cursor = document.getElementById('cursor');
+      var IDLE_AT = 10, END = 14, RUN = 8000, HOLD = 2500;
+      var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+      var render = function (min) {
+        var m = Math.floor(min), s = Math.floor((min - m) * 60);
+        away.textContent = pad(m) + ':' + pad(s);
+        without.classList.toggle('is-idle', min >= IDLE_AT);
+      };
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { render(12); return; }
+      var start = performance.now(), lastMinute = -1;
+      setInterval(function () {
+        var t = (performance.now() - start) % (RUN + HOLD);
+        var min = Math.min(t / RUN, 1) * END;
+        render(min);
+        var m = Math.floor(min);
+        if (m !== lastMinute && t < RUN) {
+          lastMinute = m;
+          if (m > 0) {
+            cursor.classList.add('nudge');
+            setTimeout(function () { cursor.classList.remove('nudge'); }, 250);
+          }
+        }
+        if (t >= RUN) lastMinute = -1;
+      }, 50);
+    })();
+
     (function () {
       var btn = document.getElementById('copy');
       var text = document.getElementById('cmd').textContent;
