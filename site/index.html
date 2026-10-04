@@ -8,7 +8,13 @@
   <meta property="og:title" content="notidle">
   <meta property="og:description" content="Keep your Discord status green while you're away. npx notidle, then Ctrl+Alt+O.">
   <meta name="theme-color" content="#0e0f11">
+  <meta property="og:image" content="og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Outfit:wght@500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
@@ -70,8 +76,9 @@
     }
 
     header { display: flex; align-items: center; gap: 10px; padding: 28px 0; }
-    header .dot { --size: 16px; }
-    header b { font: 600 19px Outfit, system-ui, sans-serif; letter-spacing: -0.01em; }
+    /* wordmark: the "o" in notidle is the glowing status ring */
+    .brand { display: inline-flex; align-items: center; font: 700 26px/1 Outfit, system-ui, sans-serif; letter-spacing: -0.02em; text-decoration: none; }
+    .brand svg { width: 0.64em; height: 0.64em; margin: 0.14em 0.03em 0; overflow: visible; }
     header nav { margin-left: auto; display: flex; gap: 20px; font-size: 15px; color: var(--muted); }
     header nav a { text-decoration: none; }
     header nav a:hover { color: var(--text); }
@@ -190,8 +197,18 @@
 <body>
   <main>
     <header>
-      <span class="dot" aria-hidden="true"></span>
-      <b>notidle</b>
+      <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <defs>
+          <filter id="ring-glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3"/></filter>
+          <linearGradient id="ring-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7cf0a8"/><stop offset=".5" stop-color="#23a55a"/><stop offset="1" stop-color="#11743a"/></linearGradient>
+          <symbol id="ring" viewBox="0 0 64 64">
+            <circle cx="32" cy="32" r="21" fill="none" stroke="#23a55a" stroke-width="13" opacity=".5" filter="url(#ring-glow)"/>
+            <circle cx="32" cy="32" r="21" fill="none" stroke="url(#ring-fill)" stroke-width="11"/>
+            <path d="M18.5 22.5 A21 21 0 0 1 31 11" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="3" stroke-linecap="round"/>
+          </symbol>
+        </defs>
+      </svg>
+      <a class="brand" href="/" aria-label="notidle home"><span>n</span><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#ring"/></svg><span>tidle</span></a>
       <nav>
         <a href="https://github.com/ediiloupatty/notidle">GitHub</a>
         <a href="https://www.npmjs.com/package/notidle">npm</a>

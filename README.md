@@ -1,4 +1,9 @@
-# notidle
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/ediiloupatty/notidle/main/site/logo-dark.png">
+    <img alt="notidle" src="https://raw.githubusercontent.com/ediiloupatty/notidle/main/site/logo-light.png" width="240">
+  </picture>
+</h1>
 
 Keep your Discord status **Online** (green) while you're away from the PC. Toggle it with a keyboard shortcut. Windows only.
 
