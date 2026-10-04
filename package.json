@@ -1,6 +1,6 @@
 {
   "name": "notidle",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Keep your Discord status Online (green) while you're away. Toggle with a keyboard shortcut. Windows only.",
   "author": "Edi Loupatty",
   "repository": {
