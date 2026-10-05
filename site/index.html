@@ -5,9 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>notidle · Stay green on Discord while you're away</title>
   <meta name="description" content="Keep your Discord status green while you're away. One command to install, Ctrl+Alt+O to toggle. Windows, free, open source.">
-  <meta name="color-scheme" content="dark light">
-  <meta name="theme-color" content="#08090a" media="(prefers-color-scheme: dark)">
-  <meta name="theme-color" content="#fbfbfa" media="(prefers-color-scheme: light)">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#008080">
   <meta property="og:title" content="notidle">
   <meta property="og:description" content="Keep your Discord status green while you're away. One PowerShell command, then Ctrl+Alt+O.">
   <meta property="og:image" content="og.png">
@@ -17,511 +16,304 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <link rel="preload" href="fonts/outfit.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="fonts/figtree.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="preload" href="fonts/jetbrainsmono.woff2" as="font" type="font/woff2" crossorigin>
-  <script>
-    // Hide the page until the fonts are in, so text doesn't jump from fallback to real font (max 1.2 s).
-    (function () {
-      var d = document.documentElement;
-      d.classList.add('js');
-      if (!document.fonts || !document.fonts.load) return;
-      d.classList.add('fonts-loading');
-      var show = function () { d.classList.remove('fonts-loading'); };
-      Promise.race([
-        Promise.all(['600 1em Outfit', '400 1em Figtree', '500 1em "JetBrains Mono"'].map(function (f) { return document.fonts.load(f); })),
-        new Promise(function (r) { setTimeout(r, 1200); })
-      ]).then(show, show);
-    })();
-  </script>
   <style>
-    @font-face { font-family: Outfit; src: url(fonts/outfit.woff2) format("woff2"); font-weight: 100 900; font-display: swap; }
-    @font-face { font-family: Figtree; src: url(fonts/figtree.woff2) format("woff2"); font-weight: 300 900; font-display: swap; }
+    /* Mono fallback for systems without Consolas / Lucida Console (macOS, Linux, phones). */
     @font-face { font-family: "JetBrains Mono"; src: url(fonts/jetbrainsmono.woff2) format("woff2"); font-weight: 500; font-display: swap; }
-    html.fonts-loading body { opacity: 0; }
-    body { transition: opacity .25s ease; }
 
-    /* ---------- tokens ---------- */
     :root {
-      --bg: #08090a;
-      --surface: #0f1012;
-      --surface-2: #151619;
-      --surface-3: #1c1d21;
-      --line: rgba(255, 255, 255, .07);
-      --line-2: rgba(255, 255, 255, .12);
-      --text: #f4f4f5;
-      --muted: #a1a1aa;
-      --faint: #71717a;
-      --green: #23a55a;
-      --green-hi: #5fe08f;
-      --green-lo: #0f6b35;
-      --green-text: #4cd383;
-      --green-soft: rgba(35, 165, 90, .14);
-      --amber: #f0b232;
-      --amber-text: #f0b232;
-      --key-top: #232428;
-      --key-side: #0d0e10;
-      --key-text: #e8e8ec;
-      --glow: rgba(35, 165, 90, .22);
-      --grid: rgba(255, 255, 255, .045);
-      --shadow-lg: 0 1px 0 rgba(255, 255, 255, .05) inset, 0 30px 80px -30px rgba(0, 0, 0, .8), 0 12px 24px -12px rgba(0, 0, 0, .5);
-      --shadow-sm: 0 1px 0 rgba(255, 255, 255, .04) inset, 0 8px 24px -12px rgba(0, 0, 0, .6);
-      --ease: cubic-bezier(.2, .7, .2, 1);
-      --radius: 18px;
-    }
-    @media (prefers-color-scheme: light) {
-      :root {
-        --bg: #fbfbfa;
-        --surface: #ffffff;
-        --surface-2: #f6f6f4;
-        --surface-3: #eeeeeb;
-        --line: rgba(12, 12, 14, .08);
-        --line-2: rgba(12, 12, 14, .14);
-        --text: #0c0c0e;
-        --muted: #55555e;
-        --faint: #85858e;
-        --green-text: #15803d;
-        --green-soft: rgba(35, 165, 90, .1);
-        --amber-text: #b7790a;
-        --key-top: #ffffff;
-        --key-side: #d6d6d1;
-        --key-text: #1c1d21;
-        --glow: rgba(35, 165, 90, .16);
-        --grid: rgba(12, 12, 14, .05);
-        --shadow-lg: 0 1px 2px rgba(12, 12, 14, .04), 0 30px 60px -30px rgba(12, 12, 14, .18), 0 12px 24px -16px rgba(12, 12, 14, .1);
-        --shadow-sm: 0 1px 2px rgba(12, 12, 14, .04), 0 6px 16px -10px rgba(12, 12, 14, .12);
-      }
+      color-scheme: light;
+      --desk: #008080;
+      --face: #c0c0c0;
+      --hi: #ffffff;
+      --light: #dfdfdf;
+      --shadow: #808080;
+      --dark: #0a0a0a;
+      --navy: #000080;
+      --blue: #1084d0;
+      --ui: Tahoma, Verdana, "Segoe UI", system-ui, sans-serif;
+      --mono: Consolas, "Lucida Console", "JetBrains Mono", ui-monospace, monospace;
+      /* the four classic bevels */
+      --raised: inset -1px -1px var(--dark), inset 1px 1px var(--light), inset -2px -2px var(--shadow), inset 2px 2px var(--hi);
+      --pressed: inset -1px -1px var(--hi), inset 1px 1px var(--dark), inset -2px -2px var(--light), inset 2px 2px var(--shadow);
+      --sunken: inset -1px -1px var(--hi), inset 1px 1px var(--shadow), inset -2px -2px var(--light), inset 2px 2px var(--dark);
+      --field: inset -1px -1px var(--hi), inset 1px 1px var(--shadow);
+      --taskbar: 40px;
     }
 
-    /* ---------- base ---------- */
     *, *::before, *::after { box-sizing: border-box; }
-    html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
-    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    [hidden] { display: none !important; }
+    html { background: var(--desk); -webkit-text-size-adjust: 100%; }
     body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font: 400 17px/1.6 Figtree, system-ui, -apple-system, "Segoe UI", sans-serif;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      text-rendering: optimizeLegibility;
-      overflow-x: hidden;
+      margin: 0; min-height: 100vh;
+      padding-bottom: var(--taskbar);
+      background: var(--desk); color: #000;
+      font: 14px/1.45 var(--ui);
     }
-    h1, h2, h3 { font-family: Outfit, system-ui, sans-serif; font-weight: 600; letter-spacing: -0.03em; margin: 0; text-wrap: balance; }
-    p { margin: 0; text-wrap: pretty; }
-    a { color: inherit; text-decoration: none; }
+    h1, h2, p { margin: 0; }
+    a { color: inherit; }
     button { font: inherit; color: inherit; }
-    code, .mono { font-family: "JetBrains Mono", ui-monospace, "Cascadia Code", Consolas, monospace; font-weight: 500; }
     svg { display: block; }
-    ::selection { background: rgba(35, 165, 90, .35); }
-    :focus-visible { outline: 2px solid var(--green); outline-offset: 3px; border-radius: 8px; }
-    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
-    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-    .skip { position: absolute; left: 16px; top: -48px; z-index: 50; padding: 8px 14px; border-radius: 10px; background: var(--text); color: var(--bg); font-size: 14px; font-weight: 600; transition: top .2s; }
-    .skip:focus { top: 12px; }
+    code, pre { font-family: var(--mono); }
+    :focus-visible { outline: 1px dotted #000; outline-offset: 2px; }
+    ::selection { background: var(--navy); color: #fff; }
+    .skip { position: absolute; left: 8px; top: -40px; z-index: 2000; padding: 6px 12px; background: var(--face); box-shadow: var(--raised); color: #000; text-decoration: none; }
+    .skip:focus { top: 8px; }
 
-    /* ---------- header ---------- */
-    .top {
-      position: sticky; top: 0; z-index: 20;
-      background: color-mix(in srgb, var(--bg) 78%, transparent);
-      -webkit-backdrop-filter: saturate(160%) blur(14px); backdrop-filter: saturate(160%) blur(14px);
-      border-bottom: 1px solid transparent;
-      transition: border-color .25s, background-color .25s;
-    }
-    .top.scrolled { border-bottom-color: var(--line); }
-    .top .wrap { display: flex; align-items: center; gap: 28px; height: 64px; }
-    /* wordmark: the "o" in notidle is the glowing status ring */
-    .brand { display: inline-flex; align-items: center; font: 700 24px/1 Outfit, system-ui, sans-serif; letter-spacing: -0.03em; }
-    .brand svg { width: 0.64em; height: 0.64em; margin: 0.14em 0.03em 0; overflow: visible; }
-    .nav { display: flex; gap: 4px; margin-left: auto; font-size: 15px; }
-    .nav a { color: var(--muted); padding: 6px 12px; border-radius: 8px; transition: color .15s, background-color .15s; }
-    .nav a:hover { color: var(--text); background: var(--surface-2); }
-    .btn-gh {
-      display: inline-flex; align-items: center; gap: 8px;
-      height: 36px; padding: 0 14px; border-radius: 10px;
-      font-size: 14px; font-weight: 600;
-      border: 1px solid var(--line-2); background: var(--surface);
-      box-shadow: var(--shadow-sm);
-      transition: border-color .15s, background-color .15s;
-    }
-    .btn-gh:hover { border-color: var(--faint); }
-    .btn-gh svg { width: 16px; height: 16px; }
+    /* ---------- desktop ---------- */
+    .desk { position: relative; min-height: calc(100vh - var(--taskbar)); padding: 20px 24px 72px 124px; }
+    .cols { display: flex; align-items: flex-start; gap: 28px; max-width: 1240px; }
+    .col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 26px; }
+    .col-a { flex-grow: 1.1; }
+    .col-b { padding-top: 36px; }
+    #w-readme { margin-left: 28px; }
+    #w-demo { margin-right: 20px; }
+    #w-status { margin-left: 30px; }
 
-    /* ---------- hero ---------- */
-    .hero { position: relative; isolation: isolate; padding: 104px 0 72px; text-align: center; }
-    .hero::before, .hero::after { content: ""; position: absolute; inset: -64px 0 0; z-index: -1; pointer-events: none; }
-    .hero::before {
-      background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-      background-size: 64px 64px;
-      background-position: center top;
-      -webkit-mask-image: radial-gradient(ellipse 60% 55% at 50% 0%, #000 20%, transparent 75%);
-      mask-image: radial-gradient(ellipse 60% 55% at 50% 0%, #000 20%, transparent 75%);
+    .icons { position: absolute; top: 16px; left: 14px; width: 92px; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .icon {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      width: 92px; padding: 4px 2px; border: 0; background: none; cursor: pointer;
+      color: #fff; font-size: 13px; line-height: 1.25; text-align: center; text-decoration: none;
     }
-    .hero::after { background: radial-gradient(ellipse 50% 40% at 50% 0%, var(--glow), transparent 70%); }
+    .icon svg { width: 32px; height: 32px; }
+    .icon span { padding: 1px 3px; }
+    .icon:focus-visible { outline: none; }
+    .icon:focus-visible span { outline: 1px dotted #fff; }
+    .icon.sel span { background: var(--navy); }
+    .icon.sel svg { filter: sepia(1) hue-rotate(190deg) saturate(3) brightness(.75); }
 
-    .pill {
-      display: inline-flex; align-items: center; gap: 10px;
-      padding: 6px 14px 6px 10px; margin-bottom: 32px;
-      border: 1px solid var(--line-2); border-radius: 999px;
-      background: color-mix(in srgb, var(--surface) 70%, transparent);
-      font-size: 13.5px; color: var(--muted);
-      box-shadow: var(--shadow-sm);
-      transition: border-color .15s, color .15s;
-    }
-    .pill:hover { color: var(--text); border-color: var(--faint); }
-    .pill .sep { width: 1px; height: 12px; background: var(--line-2); }
-    .pill svg { width: 14px; height: 14px; transition: transform .2s var(--ease); }
-    .pill:hover svg { transform: translateX(2px); }
-    .live { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); }
-    .live::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 1.5px solid var(--green); opacity: 0; }
+    .mark { position: absolute; right: 20px; bottom: 16px; margin: 0; color: #fff; font-size: 12.5px; text-align: right; }
+    .mark a { text-underline-offset: 2px; }
 
-    .hero h1 { font-size: clamp(46px, 7.6vw, 88px); line-height: .98; letter-spacing: -0.045em; margin: 0 auto 24px; }
-    .grad {
-      background: linear-gradient(180deg, #a3f5c4 0%, #3fcf7c 45%, #1f9a52 100%);
-      -webkit-background-clip: text; background-clip: text; color: transparent;
-      padding-right: .04em;
+    /* ---------- window ---------- */
+    .win { position: relative; display: flex; flex-direction: column; background: var(--face); padding: 3px; box-shadow: var(--raised); }
+    .win.min { display: none; }
+    .title {
+      display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 3px 0 5px;
+      background: linear-gradient(90deg, var(--shadow), #b5b5b5); color: var(--light);
+      user-select: none; -webkit-user-select: none;
     }
-    @media (prefers-color-scheme: light) { .grad { background-image: linear-gradient(180deg, #38c873 0%, #1f9a52 55%, #137a3d 100%); } }
-    .lead { font-size: clamp(17px, 2vw, 20px); line-height: 1.55; color: var(--muted); max-width: 33em; margin: 0 auto 44px; }
+    .win.active > .title { background: linear-gradient(90deg, var(--navy), var(--blue)); color: #fff; }
+    .title > svg { width: 16px; height: 16px; flex: none; }
+    .title h2 { flex: 1; min-width: 0; font: 700 13px/1 var(--ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ctrls { display: flex; flex: none; }
+    .ctrls button { width: 22px; height: 20px; padding: 0; border: 0; background: var(--face); box-shadow: var(--raised); display: grid; place-items: center; color: #000; cursor: pointer; }
+    .ctrls button:active { box-shadow: var(--pressed); }
+    .ctrls button svg { width: 10px; height: 9px; }
+    .ctrls .x { margin-left: 2px; }
+    .menubar { display: flex; flex-wrap: wrap; padding: 3px 1px 2px; font-size: 13px; }
+    .menubar span { padding: 1px 8px; }
+    .body { display: flex; flex-direction: column; gap: 10px; min-height: 0; padding: 10px; }
+    .win.max { position: fixed !important; left: 0 !important; top: 0 !important; right: 0; bottom: var(--taskbar); width: auto !important; margin: 0 !important; }
+    .win.max .body { flex: 1; overflow: auto; }
 
-    /* install card */
-    .install {
-      max-width: 620px; margin: 0 auto; text-align: left;
-      background: var(--surface); border: 1px solid var(--line-2); border-radius: 16px;
-      box-shadow: var(--shadow-lg);
-      overflow: hidden;
-    }
-    .install-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 8px 8px 10px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
-    .seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); }
-    .seg button {
-      border: 0; background: transparent; cursor: pointer;
-      padding: 5px 12px; border-radius: 7px;
-      font-size: 13.5px; font-weight: 500; color: var(--muted);
-      transition: color .15s, background-color .15s, box-shadow .15s;
-    }
-    .seg button:hover { color: var(--text); }
-    .seg button[aria-selected="true"] { color: var(--text); background: var(--surface-3); box-shadow: 0 1px 2px rgba(0, 0, 0, .25), 0 0 0 1px var(--line) inset; }
-    .install-cmd {
-      display: flex; align-items: baseline; gap: 12px;
-      padding: 20px 22px; font-size: 15px; line-height: 1.5;
-      white-space: nowrap; overflow-x: auto; scrollbar-width: none;
-    }
-    .install-cmd::-webkit-scrollbar { display: none; }
-    .install-cmd.overflow { -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 48px), transparent); }
-    .install-cmd.overflow.end { -webkit-mask-image: none; mask-image: none; }
-    .install-cmd .prompt { color: var(--green-text); user-select: none; flex: none; }
-    .install-cmd code { flex: 1; }
+    .desk.frozen .win { position: absolute; margin: 0; }
+    .dialog { position: fixed; width: min(460px, calc(100vw - 20px)); z-index: 30; }
 
-    .copy {
-      display: inline-flex; align-items: center; gap: 7px; flex: none;
-      height: 32px; padding: 0 12px; border-radius: 9px; cursor: pointer;
-      font-size: 13.5px; font-weight: 600;
-      border: 1px solid var(--line-2); background: var(--surface);
-      transition: border-color .15s, color .15s, background-color .15s;
-    }
-    .copy:hover { border-color: var(--faint); }
-    .copy svg { width: 15px; height: 15px; }
-    .copy .i-check, .copied .i-copy { display: none; }
-    .copied .i-check { display: block; color: var(--green-text); }
-    .copy.copied { border-color: color-mix(in srgb, var(--green) 55%, transparent); }
-
-    .facts-inline { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 26px; margin: 24px 0 0; padding: 0; list-style: none; font-size: 14px; color: var(--muted); }
-    .facts-inline li { display: inline-flex; align-items: center; gap: 8px; }
-    .facts-inline svg { width: 16px; height: 16px; color: var(--green-text); }
-    .kbd-inline { font: 500 12.5px "JetBrains Mono", ui-monospace, monospace; padding: 2px 6px; border-radius: 6px; border: 1px solid var(--line-2); background: var(--surface-2); color: var(--text); }
-
-    /* ---------- showcase: away timer, with vs without ---------- */
-    .showcase { padding: 8px 0 24px; }
-    .panel {
-      --badge-bg: var(--surface);
-      max-width: 920px; margin: 0 auto; padding: 28px;
-      background: var(--surface); border: 1px solid var(--line-2); border-radius: 22px;
-      box-shadow: var(--shadow-lg);
-    }
-    .panel-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
-    .eyebrow-sm { font-size: 13px; color: var(--muted); }
-    .clock { font: 500 34px/1.1 "JetBrains Mono", ui-monospace, monospace; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin-top: 4px; }
-    .legend { display: flex; gap: 16px; font-size: 13px; color: var(--muted); }
-    .legend span { display: inline-flex; align-items: center; gap: 7px; }
-    .legend i { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
-    .legend i.a { background: var(--amber); }
-    .track { position: relative; height: 6px; margin: 22px 0 46px; border-radius: 6px; background: var(--surface-3); }
-    .track-fill { position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(90deg, var(--green-lo), var(--green) 60%, var(--green-hi)); transform-origin: left center; transform: scaleX(0); }
-    .track-mark { position: absolute; top: -5px; left: 71.43%; width: 2px; height: 16px; margin-left: -1px; border-radius: 2px; background: var(--amber); }
-    .track-mark span { position: absolute; top: 22px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: 12px; color: var(--amber-text); }
-
-    .vs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-    .side {
-      --badge-bg: var(--surface-2);
-      position: relative; display: flex; align-items: center; gap: 16px;
-      padding: 18px 20px; border-radius: 16px;
-      background: var(--surface-2); border: 1px solid var(--line);
-      transition: border-color .5s, box-shadow .5s;
-    }
-    .side.is-with { border-color: color-mix(in srgb, var(--green) 35%, transparent); box-shadow: 0 0 0 4px var(--green-soft); }
-    .avatar { position: relative; width: 56px; height: 56px; flex: none; }
-    .face {
-      width: 100%; height: 100%; border-radius: 50%; overflow: hidden;
-      background: radial-gradient(circle at 34% 28%, #a5a8ff, #6268e8 50%, #2f3290 100%);
-      box-shadow: inset 0 -4px 10px rgba(0, 0, 0, .35), inset 0 2px 4px rgba(255, 255, 255, .25);
-    }
-    .face svg { width: 100%; height: 100%; }
-    .badge { position: absolute; right: -3px; bottom: -3px; width: 24px; height: 24px; border-radius: 50%; background: var(--badge-bg); display: grid; place-items: center; }
-    .badge i {
-      position: relative; width: 15px; height: 15px; border-radius: 50%; overflow: hidden;
-      background: radial-gradient(circle at 38% 32%, #8ef5b5, #2bb565 50%, #0c5c2d);
-      box-shadow: 0 0 10px rgba(35, 165, 90, .6);
-      transition: background .5s, box-shadow .5s;
-    }
-    .badge i::after {
-      content: ""; position: absolute; width: 10px; height: 10px; border-radius: 50%;
-      top: -2px; left: -2px; background: var(--badge-bg);
-      transform: scale(0); transition: transform .5s var(--ease);
-    }
-    .side.is-idle .badge i { background: radial-gradient(circle at 62% 64%, #ffe39a, #f0b232 55%, #a87208); box-shadow: 0 0 10px rgba(240, 178, 50, .45); }
-    .side.is-idle .badge i::after { transform: scale(1); }
-    .who { min-width: 0; flex: 1; }
-    .name { font: 600 17px/1.2 Outfit, system-ui, sans-serif; letter-spacing: -0.01em; }
-    .status { display: grid; font-size: 14px; margin-top: 3px; }
-    .status span { grid-area: 1 / 1; transition: opacity .4s; }
-    .status .st-on { color: var(--green-text); }
-    .status .st-idle { color: var(--amber-text); opacity: 0; }
-    .side.is-idle .st-idle { opacity: 1; }
-    .side.is-idle .st-on { opacity: 0; }
-    .tag { flex: none; font-size: 12.5px; font-weight: 500; color: var(--muted); padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line-2); }
-    .tag.g { color: var(--green-text); border-color: color-mix(in srgb, var(--green) 40%, transparent); background: var(--green-soft); }
-    .cursor { position: absolute; left: -6px; bottom: -2px; width: 18px; height: 18px; transition: transform .25s var(--ease); filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .4)); }
-    .cursor.nudge { transform: translateX(4px); }
-
-    /* ---------- sections ---------- */
-    .section { padding: 128px 0 0; scroll-margin-top: 40px; }
-    .head { text-align: center; max-width: 640px; margin: 0 auto 56px; }
-    .kicker { display: inline-block; font: 500 12.5px "JetBrains Mono", ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--green-text); margin-bottom: 16px; }
-    .head h2 { font-size: clamp(32px, 4.6vw, 48px); line-height: 1.05; letter-spacing: -0.035em; }
-    .head p { color: var(--muted); font-size: 18px; margin-top: 16px; }
-
-    .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
-
-    /* steps */
-    .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin: 0; padding: 0; list-style: none; }
-    .step { display: flex; flex-direction: column; overflow: hidden; }
-    .visual {
-      position: relative; height: 200px; display: grid; place-items: center;
-      border-bottom: 1px solid var(--line);
-      background:
-        radial-gradient(ellipse 70% 80% at 50% 100%, var(--green-soft), transparent 70%),
-        var(--surface-2);
-      overflow: hidden;
-    }
-    .step-body { padding: 24px 26px 28px; }
-    .step-n { font: 500 12.5px "JetBrains Mono", ui-monospace, monospace; color: var(--faint); }
-    .step h3 { font-size: 21px; letter-spacing: -0.02em; margin: 8px 0 8px; }
-    .step p { color: var(--muted); font-size: 15.5px; line-height: 1.6; }
-    .step b { color: var(--text); font-weight: 600; }
-
-    /* step 1: terminal */
-    .term {
-      width: calc(100% - 40px); max-width: 316px;
-      font: 500 11px/1.8 "JetBrains Mono", ui-monospace, monospace;
-      background: var(--bg); border: 1px solid var(--line-2); border-radius: 12px;
-      box-shadow: var(--shadow-sm); overflow: hidden;
-    }
-    .term-bar { display: flex; gap: 6px; padding: 9px 12px; border-bottom: 1px solid var(--line); }
-    .term-bar i { width: 8px; height: 8px; border-radius: 50%; background: var(--surface-3); }
-    .term-body { padding: 10px 14px 12px; white-space: nowrap; overflow: hidden; }
-    .term-body div { overflow: hidden; text-overflow: ellipsis; }
-    .t-mut { color: var(--faint); }
-    .t-ok { color: var(--green-text); }
-
-    /* step 2: keys -> tray */
-    .combo { display: flex; flex-direction: column; align-items: center; gap: 22px; }
-    .keys { display: flex; align-items: center; gap: 8px; color: var(--faint); font-size: 15px; }
-    kbd {
-      font: 600 15px Figtree, system-ui, sans-serif; color: var(--key-text);
-      min-width: 46px; height: 42px; padding: 0 12px;
-      display: inline-flex; align-items: center; justify-content: center;
-      border-radius: 9px; border: 1px solid var(--line);
-      background: linear-gradient(180deg, var(--key-top), color-mix(in srgb, var(--key-top) 86%, var(--key-side)));
-      box-shadow: 0 4px 0 var(--key-side), 0 6px 14px rgba(0, 0, 0, .25), inset 0 1px 0 rgba(255, 255, 255, .07);
-    }
-    .tray {
-      display: inline-flex; align-items: center; gap: 10px;
-      padding: 7px 14px 7px 9px; border-radius: 999px;
-      background: var(--bg); border: 1px solid var(--line-2);
-      font: 500 12.5px "JetBrains Mono", ui-monospace, monospace; color: var(--muted);
-    }
-    .dot {
-      --size: 16px;
-      width: var(--size); height: var(--size); border-radius: 50%; flex: none;
-      background:
-        radial-gradient(circle at 35% 30%, rgba(255, 255, 255, .55) 0 12%, transparent 30%),
-        radial-gradient(circle at 50% 55%, var(--green-hi), var(--green) 55%, var(--green-lo) 100%);
-      box-shadow: inset 0 -2px 4px rgba(0, 0, 0, .35), 0 0 0 3px rgba(35, 165, 90, .12), 0 0 14px rgba(35, 165, 90, .55);
-    }
-    .flip { display: grid; }
-    .flip span { grid-area: 1 / 1; }
-    .flip .on { opacity: 0; color: var(--text); }
-
-    /* step 3: ring timer + nudge */
-    .timer { position: relative; width: 132px; height: 132px; }
-    .timer svg.ring-t { width: 100%; height: 100%; transform: rotate(-90deg); }
-    .ring-t circle { fill: none; stroke-width: 7; }
-    .ring-t .bg { stroke: var(--surface-3); }
-    .ring-t .fg { stroke: var(--green); stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 30; filter: drop-shadow(0 0 6px rgba(35, 165, 90, .5)); }
-    .timer-label { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
-    .timer-label b { font: 600 26px/1 Outfit, system-ui, sans-serif; letter-spacing: -0.02em; }
-    .timer-label span { font-size: 12px; color: var(--muted); margin-top: 4px; }
-    .timer .cursor { left: auto; right: -2px; bottom: 8px; width: 22px; height: 22px; transition: none; }
-
-    @media (prefers-reduced-motion: no-preference) {
-      .live::after { animation: ping 2.4s var(--ease) infinite; }
-      kbd { animation: press 4s infinite; }
-      .combo .dot { animation: on 4s infinite; }
-      .flip .off { animation: off-t 4s infinite; }
-      .flip .on { animation: on-t 4s infinite; }
-      .ring-t .fg { animation: fill 5s linear infinite; }
-      .timer .cursor { animation: nudge 5s var(--ease) infinite; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .flip .off { opacity: 0; }
-      .flip .on { opacity: 1; }
-    }
-    @keyframes ping { 0% { transform: scale(.6); opacity: .8; } 80%, 100% { transform: scale(1.6); opacity: 0; } }
-    @keyframes press {
-      0%, 30%, 45%, 100% { transform: translateY(0); box-shadow: 0 4px 0 var(--key-side), 0 6px 14px rgba(0, 0, 0, .25), inset 0 1px 0 rgba(255, 255, 255, .07); }
-      35%, 40% { transform: translateY(3px); box-shadow: 0 1px 0 var(--key-side), 0 2px 4px rgba(0, 0, 0, .2), inset 0 1px 0 rgba(255, 255, 255, .07); }
-    }
-    @keyframes on {
-      0%, 40% { filter: grayscale(1) brightness(.7); box-shadow: inset 0 -2px 4px rgba(0, 0, 0, .35); }
-      48%, 92% { filter: none; }
-      100% { filter: grayscale(1) brightness(.7); box-shadow: inset 0 -2px 4px rgba(0, 0, 0, .35); }
-    }
-    @keyframes off-t { 0%, 40% { opacity: 1; } 45%, 92% { opacity: 0; } 100% { opacity: 1; } }
-    @keyframes on-t { 0%, 40% { opacity: 0; } 45%, 92% { opacity: 1; } 100% { opacity: 0; } }
-    @keyframes fill { 0% { stroke-dashoffset: 100; } 80%, 100% { stroke-dashoffset: 0; } }
-    @keyframes nudge { 0%, 80% { transform: translateX(0); } 84% { transform: translateX(5px); } 88%, 100% { transform: translateX(0); } }
-
-    /* video */
-    .video-frame { max-width: 920px; margin: 0 auto; padding: 8px; border-radius: 24px; }
-    .video { position: relative; aspect-ratio: 16 / 9; border-radius: 17px; overflow: hidden; background: var(--surface-2); }
-    .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-
-    /* features */
-    .features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--line); gap: 1px; }
-    .feature { background: var(--bg); padding: 32px 30px 34px; transition: background-color .25s; }
-    .feature:hover { background: var(--surface); }
-    .icon { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 11px; margin-bottom: 20px; color: var(--green-text); background: var(--green-soft); border: 1px solid color-mix(in srgb, var(--green) 25%, transparent); }
-    .icon svg { width: 20px; height: 20px; }
-    .feature h3 { font-size: 18px; letter-spacing: -0.015em; margin-bottom: 8px; }
-    .feature p { color: var(--muted); font-size: 15.5px; line-height: 1.6; }
-
-    /* commands */
-    .cmds { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); gap: 64px; align-items: start; }
-    .cmds .head { text-align: left; margin: 0; position: sticky; top: 112px; }
-    .cmd-group + .cmd-group { margin-top: 20px; }
-    .cmd-group h3 { display: flex; align-items: center; justify-content: space-between; gap: 12px; font: 600 13px Figtree, system-ui, sans-serif; letter-spacing: 0; color: var(--muted); padding: 14px 20px; border-bottom: 1px solid var(--line); background: var(--surface-2); border-radius: var(--radius) var(--radius) 0 0; }
-    .cmd-group h3 small { font-weight: 400; font-size: 12.5px; color: var(--faint); }
-    .cmd-list { margin: 0; padding: 0; list-style: none; }
-    .cmd { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 16px; padding: 16px 12px 16px 20px; }
-    .cmd + .cmd { border-top: 1px solid var(--line); }
-    .cmd code { font-size: 14px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .cmd code .arg { color: var(--green-text); }
-    .cmd p { grid-column: 1; font-size: 14.5px; color: var(--muted); }
-    .cmd .copy-sm { grid-row: 1 / span 2; grid-column: 2; }
-    .nw { white-space: nowrap; }
-    .copy-sm {
-      width: 34px; height: 34px; display: grid; place-items: center; cursor: pointer;
-      border-radius: 9px; border: 1px solid transparent; background: transparent; color: var(--faint);
-      transition: color .15s, border-color .15s, background-color .15s;
-    }
-    .copy-sm:hover { color: var(--text); border-color: var(--line-2); background: var(--surface-2); }
-    .copy-sm svg { width: 15px; height: 15px; }
-    .copy-sm .i-check, .copy-sm.copied .i-copy { display: none; }
-    .copy-sm.copied .i-check { display: block; color: var(--green-text); }
-
-    /* closing call to action */
-    .cta { position: relative; isolation: isolate; margin-top: 128px; padding: 88px 24px; text-align: center; border-radius: 28px; overflow: hidden; }
-    .cta::before { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(ellipse 60% 90% at 50% 120%, var(--glow), transparent 70%); }
-    .cta .big-ring { width: 56px; height: 56px; margin: 0 auto 28px; overflow: visible; }
-    .cta h2 { font-size: clamp(34px, 5vw, 56px); line-height: 1.02; letter-spacing: -0.04em; }
-    .cta p { color: var(--muted); font-size: 18px; margin: 16px auto 36px; max-width: 30em; }
-    .actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+    /* ---------- controls ---------- */
     .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 9px;
-      height: 46px; padding: 0 20px; border-radius: 12px; cursor: pointer;
-      font-size: 15px; font-weight: 600; border: 1px solid transparent;
-      transition: transform .15s var(--ease), background-color .15s, border-color .15s, box-shadow .15s;
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      min-width: 92px; height: 30px; padding: 0 14px;
+      border: 0; border-radius: 0; background: var(--face); box-shadow: var(--raised);
+      font: 13.5px var(--ui); color: #000; text-decoration: none; cursor: pointer; white-space: nowrap;
     }
-    .btn:active { transform: translateY(1px); }
-    .btn svg { width: 17px; height: 17px; }
-    .btn-primary { color: #04120a; background: linear-gradient(180deg, #4fe08d, #23a55a); box-shadow: 0 1px 0 rgba(255, 255, 255, .35) inset, 0 8px 24px -8px rgba(35, 165, 90, .7); }
-    .btn-primary:hover { box-shadow: 0 1px 0 rgba(255, 255, 255, .35) inset, 0 10px 30px -8px rgba(35, 165, 90, .9); }
-    .btn-primary .i-check { display: none; }
-    .btn-primary.copied .i-copy { display: none; }
-    .btn-primary.copied .i-check { display: block; color: inherit; }
-    .btn-ghost { background: var(--surface); border-color: var(--line-2); box-shadow: var(--shadow-sm); }
-    .btn-ghost:hover { border-color: var(--faint); }
+    .btn:active { box-shadow: var(--pressed); padding: 1px 13px 0 15px; }
+    .btn:focus-visible { outline: 1px dotted #000; outline-offset: -5px; }
+    .btn.default { box-shadow: inset 0 0 0 1px var(--dark), inset -2px -2px var(--dark), inset 2px 2px var(--hi), inset -3px -3px var(--shadow), inset 3px 3px var(--light); }
+    .btn.default:active { box-shadow: inset 0 0 0 1px var(--dark), inset 0 0 0 2px var(--shadow); }
+    .btn svg { width: 16px; height: 16px; }
+    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .row.end { justify-content: space-between; }
+    .row.end .btn { margin-left: auto; }
+    .hint { font-size: 13px; color: #222; }
 
-    /* footer */
-    footer { margin-top: 96px; border-top: 1px solid var(--line); }
-    .foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px 32px; padding: 36px 24px 44px; font-size: 14px; color: var(--muted); }
-    .foot .brand { font-size: 20px; color: var(--text); }
-    .foot-l { display: flex; flex-direction: column; gap: 8px; }
-    .foot-links { display: flex; flex-wrap: wrap; gap: 8px 24px; }
-    .foot-links a:hover { color: var(--text); }
-    .fine { width: 100%; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 13px; color: var(--faint); }
-
-    /* entrance: hero rises once fonts are in, sections fade up when scrolled to */
-    @media (prefers-reduced-motion: no-preference) {
-      html:not(.fonts-loading) .rise { animation: rise .9s var(--ease) both; }
-      html:not(.fonts-loading) .rise:nth-child(2) { animation-delay: .06s; }
-      html:not(.fonts-loading) .rise:nth-child(3) { animation-delay: .12s; }
-      html:not(.fonts-loading) .rise:nth-child(4) { animation-delay: .18s; }
-      html:not(.fonts-loading) .rise:nth-child(5) { animation-delay: .24s; }
-      .js .reveal { opacity: 0; transform: translateY(18px); transition: opacity .8s var(--ease), transform .8s var(--ease); }
-      .js .reveal.in { opacity: 1; transform: none; }
+    .tabs { position: relative; z-index: 1; display: flex; align-items: flex-end; padding-left: 4px; margin-bottom: -2px; }
+    .tab {
+      position: relative; margin-top: 3px; padding: 3px 12px 4px; border: 0; border-radius: 3px 3px 0 0;
+      background: var(--face); font: 13.5px var(--ui); color: #000; cursor: pointer;
+      box-shadow: inset 1px 1px var(--light), inset 2px 2px var(--hi), inset -1px 0 var(--dark), inset -2px 0 var(--shadow);
     }
-    @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    .tab[aria-selected="true"] { z-index: 2; margin: 0 -2px; padding: 4px 14px 7px; }
+    .tab:focus-visible { outline: 1px dotted #000; outline-offset: -5px; }
+    .panel { padding: 12px; background: var(--face); box-shadow: var(--raised); display: flex; flex-direction: column; gap: 10px; }
+
+    .statusbar { display: flex; gap: 3px; padding-top: 3px; font-size: 12.5px; }
+    .statusbar span { flex: 1 1 0; min-width: 0; padding: 2px 6px; box-shadow: var(--field); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* classic scrollbars where the engine allows it */
+    .scroll::-webkit-scrollbar { width: 16px; height: 16px; }
+    .scroll::-webkit-scrollbar-track { background: repeating-conic-gradient(var(--face) 0 25%, var(--hi) 0 50%) 0 0 / 2px 2px; }
+    .scroll::-webkit-scrollbar-thumb { background: var(--face); box-shadow: var(--raised); }
+    .scroll::-webkit-scrollbar-button:single-button { display: block; height: 16px; width: 16px; background-color: var(--face); background-repeat: no-repeat; background-position: center; box-shadow: var(--raised); }
+    .scroll::-webkit-scrollbar-button:single-button:vertical:decrement { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='4'%3E%3Cpath d='M3 0h1v1h1v1h1v1h1v1H0V3h1V2h1V1h1z'/%3E%3C/svg%3E"); }
+    .scroll::-webkit-scrollbar-button:single-button:vertical:increment { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='4'%3E%3Cpath d='M0 0h7v1H6v1H5v1H4v1H3V3H2V2H1V1H0z'/%3E%3C/svg%3E"); }
+    .scroll::-webkit-scrollbar-button:single-button:active { box-shadow: var(--field); }
+
+    /* ---------- welcome ---------- */
+    .hello { display: flex; flex-direction: column; gap: 14px; padding: 22px 24px 24px; background: #fff; box-shadow: var(--sunken); }
+    .hello-top { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; color: #333; font-size: 16px; }
+    .wordmark { display: inline-flex; align-items: center; color: #000; font: 700 40px/1 var(--ui); letter-spacing: -0.02em; }
+    .wordmark svg { width: .62em; height: .62em; margin: .12em .03em 0; overflow: visible; }
+    .rule { height: 3px; background: linear-gradient(90deg, var(--navy), var(--desk) 70%, transparent); }
+    .hello h1 { font: 700 26px/1.2 var(--ui); letter-spacing: -0.01em; }
+    .hello p { max-width: 34em; color: #222; font-size: 15px; }
+    .small { font-size: 12.5px; color: #333; }
+
+    /* ---------- consoles ---------- */
+    .console {
+      margin: 0; min-height: 216px; padding: 10px 12px;
+      background: #012456; color: #eeedf0; box-shadow: var(--sunken);
+      font: 13.5px/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere;
+    }
+    .console.cmdline { background: #0c0c0c; color: #cccccc; }
+    .c-cmd { color: #f9f1a5; }
+    .cmdline .c-cmd { color: #fff; }
+    .c-ok { color: #16c60c; }
+    .caret { display: inline-block; width: .6em; height: 2px; background: currentColor; vertical-align: -1px; }
+    @media (prefers-reduced-motion: no-preference) { .caret { animation: blink 1.06s steps(1) infinite; } }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ---------- notepad ---------- */
+    .notepad {
+      height: 330px; overflow: auto; margin: 0; padding: 6px 8px;
+      background: #fff; box-shadow: var(--sunken);
+      font: 14px/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere;
+    }
+    .win.max .notepad { height: auto; flex: 1; }
+    .notepad-wrap { padding: 0 3px 3px; display: flex; flex-direction: column; min-height: 0; }
+    .win.max .notepad-wrap { flex: 1; }
+
+    /* ---------- status demo ---------- */
+    .profile { --badge-bg: #fff; position: relative; display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: #fff; box-shadow: var(--sunken); }
+    .avatar { position: relative; width: 52px; height: 52px; flex: none; }
+    .face { width: 100%; height: 100%; border-radius: 50%; overflow: hidden; background: #6268e8; border: 1px solid #000; }
+    .face svg { width: 100%; height: 100%; }
+    .badge { position: absolute; right: -4px; bottom: -4px; width: 22px; height: 22px; border-radius: 50%; background: var(--badge-bg); display: grid; place-items: center; }
+    .badge i { position: relative; width: 14px; height: 14px; border-radius: 50%; overflow: hidden; background: #23a55a; transition: background .4s; }
+    .badge i::after { content: ""; position: absolute; width: 9px; height: 9px; top: -2px; left: -2px; border-radius: 50%; background: var(--badge-bg); transform: scale(0); transition: transform .4s; }
+    .profile.is-idle .badge i { background: #f0b232; }
+    .profile.is-idle .badge i::after { transform: scale(1); }
+    .who b { font-size: 15px; }
+    .st { display: grid; font-size: 13.5px; }
+    .st span { grid-area: 1 / 1; transition: opacity .3s; }
+    .st-on { color: #137a3f; }
+    .st-idle { color: #8a5a00; opacity: 0; }
+    .profile.is-idle .st-on { opacity: 0; }
+    .profile.is-idle .st-idle { opacity: 1; }
+    .cursor { position: absolute; left: 44px; bottom: 6px; width: 18px; height: 18px; transition: transform .15s; }
+    .cursor.nudge { transform: translateX(5px); }
+    .nudged { margin-left: auto; align-self: flex-start; font-size: 12px; color: #137a3f; opacity: 0; transition: opacity .2s; }
+    .nudged.show { opacity: 1; }
+    fieldset { margin: 0; padding: 8px 10px 10px; border: 1px solid var(--shadow); box-shadow: 1px 1px var(--hi), inset 1px 1px var(--hi); }
+    legend { padding: 0 4px; font-size: 13px; }
+    .progress { height: 22px; padding: 3px; background: var(--face); box-shadow: var(--field); }
+    .bar { width: 0; height: 100%; background: repeating-linear-gradient(90deg, var(--navy) 0 9px, transparent 9px 11px); }
+    .msg { margin-top: 8px; font-size: 13.5px; min-height: 2.9em; }
+
+    /* ---------- video ---------- */
+    .video { position: relative; aspect-ratio: 16 / 9; background: #000; box-shadow: var(--sunken); padding: 2px; }
+    .video iframe { position: absolute; inset: 2px; width: calc(100% - 4px); height: calc(100% - 4px); border: 0; }
+    .win.max .video { flex: 1; aspect-ratio: auto; }
+
+    /* ---------- help list ---------- */
+    .list { padding: 2px; background: #fff; box-shadow: var(--sunken); }
+    .list-head, .opt { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+    .list-head span { padding: 3px 6px; background: var(--face); box-shadow: var(--raised); font-size: 13px; }
+    .listbox:focus { outline: none; }
+    .opt { cursor: pointer; font-size: 13.5px; }
+    .opt > * { padding: 5px 6px; min-width: 0; }
+    .opt code { font-size: 13px; overflow-wrap: anywhere; }
+    .opt[aria-selected="true"] { background: var(--navy); color: #fff; }
+    .listbox:focus-visible .opt[aria-selected="true"] { outline: 1px dotted #fff; outline-offset: -2px; }
+
+    /* ---------- dialogs ---------- */
+    .dlg { display: flex; gap: 14px; padding: 8px 6px 4px; }
+    .dlg > svg { width: 32px; height: 32px; flex: none; }
+    .dlg-text { display: flex; flex-direction: column; gap: 10px; min-width: 0; flex: 1; }
+    .field { display: flex; align-items: center; gap: 6px; }
+    .field code { flex: 1; min-width: 0; padding: 5px 7px; background: #fff; box-shadow: var(--sunken); font-size: 12.5px; white-space: nowrap; overflow-x: auto; }
+    .field .btn { min-width: 0; padding: 0 10px; }
+    .dlg-btns { display: flex; justify-content: flex-end; gap: 8px; padding: 4px 6px 4px; }
+
+    /* ---------- taskbar ---------- */
+    .taskbar {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000;
+      display: flex; align-items: center; gap: 4px; height: var(--taskbar); padding: 4px;
+      background: var(--face); box-shadow: inset 0 1px var(--light), inset 0 2px var(--hi);
+    }
+    .start { display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px 0 6px; border: 0; background: var(--face); box-shadow: var(--raised); font-weight: 700; cursor: pointer; flex: none; }
+    .start svg { width: 20px; height: 20px; overflow: visible; }
+    .start[aria-expanded="true"] { box-shadow: var(--pressed); padding: 1px 9px 0 7px; }
+    .start:focus-visible { outline: 1px dotted #000; outline-offset: -5px; }
+    .sep { width: 2px; height: 30px; margin: 0 2px; box-shadow: inset 1px 0 var(--shadow), inset -1px 0 var(--hi); flex: none; }
+    .tasks { display: flex; gap: 4px; flex: 1; min-width: 0; overflow: hidden; }
+    .task {
+      display: flex; align-items: center; gap: 6px; flex: 0 1 170px; min-width: 40px; height: 32px; padding: 0 8px;
+      border: 0; background: var(--face); box-shadow: var(--raised); text-align: left; cursor: pointer; font-size: 13px;
+    }
+    .task svg { width: 16px; height: 16px; flex: none; }
+    .task span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .task.on { box-shadow: var(--pressed); font-weight: 700; background: repeating-conic-gradient(var(--face) 0 25%, var(--hi) 0 50%) 0 0 / 2px 2px; }
+    .task:focus-visible { outline: 1px dotted #000; outline-offset: -5px; }
+    .tray { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px 0 8px; box-shadow: var(--field); flex: none; margin-left: auto; }
+    .tray-btn { display: grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 0; background: none; cursor: pointer; }
+    .tray-btn svg { width: 16px; height: 16px; }
+    .td { fill: #8c8c8c; stroke: #3c3c3c; transition: fill .2s; }
+    .tray-btn.on .td { fill: #23a55a; stroke: #0b5a2c; }
+    .clock { min-width: 58px; font-size: 13px; text-align: right; white-space: nowrap; }
+
+    .startmenu { position: fixed; left: 4px; bottom: calc(var(--taskbar) - 2px); z-index: 1001; display: flex; min-width: 250px; padding: 3px; background: var(--face); box-shadow: var(--raised); }
+    .banner { display: flex; align-items: flex-end; width: 30px; padding: 8px 0; background: linear-gradient(0deg, var(--navy), var(--blue)); color: #fff; }
+    .banner span { writing-mode: vertical-rl; transform: rotate(180deg); font: 700 20px/1 var(--ui); letter-spacing: .01em; }
+    .banner span i { font-style: normal; font-weight: 400; color: var(--light); }
+    .menu { display: flex; flex-direction: column; flex: 1; padding: 2px 0; }
+    .mi { display: flex; align-items: center; gap: 10px; padding: 6px 28px 6px 8px; border: 0; background: none; color: #000; font: 14px var(--ui); text-align: left; text-decoration: none; cursor: pointer; }
+    .mi svg { width: 24px; height: 24px; flex: none; }
+    .mi:hover, .mi:focus { background: var(--navy); color: #fff; outline: none; }
+    .menu hr { width: calc(100% - 4px); margin: 3px 2px; border: 0; border-top: 1px solid var(--shadow); border-bottom: 1px solid var(--hi); }
+
+    .balloon { position: fixed; right: 8px; bottom: calc(var(--taskbar) + 12px); z-index: 1002; width: min(290px, calc(100vw - 16px)); padding: 8px 10px 10px 12px; background: #ffffe1; border: 1px solid #000; border-radius: 8px; font-size: 13px; box-shadow: 2px 2px 0 rgba(0, 0, 0, .25); }
+    .balloon::before, .balloon::after { content: ""; position: absolute; right: var(--tail, 76px); border: solid transparent; }
+    .balloon::before { bottom: -13px; border-width: 13px 0 0 13px; border-top-color: #000; }
+    .balloon::after { bottom: -11px; margin-right: 1px; border-width: 11px 0 0 11px; border-top-color: #ffffe1; }
+    .b-head { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+    .b-head svg { width: 14px; height: 14px; overflow: visible; }
+    .b-head b { flex: 1; }
+    .b-x { width: 18px; height: 16px; padding: 0; border: 0; background: var(--face); box-shadow: var(--raised); display: grid; place-items: center; cursor: pointer; }
+    .b-x svg { width: 8px; height: 7px; }
 
     /* ---------- responsive ---------- */
-    @media (max-width: 960px) {
-      .steps { grid-template-columns: minmax(0, 1fr); max-width: 560px; margin: 0 auto; }
-      .features { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .cmds { grid-template-columns: minmax(0, 1fr); gap: 40px; }
-      .cmds .head { position: static; text-align: center; margin: 0 auto; }
+    @media (min-width: 760px) and (pointer: fine) { .title { touch-action: none; } }
+    @media (max-width: 1059px) {
+      .cols { flex-direction: column; align-items: stretch; max-width: 760px; }
+      .col { display: contents; }
+      #w-welcome { order: 1; } #w-shell { order: 2; } #w-status { order: 3; } #w-readme { order: 4; } #w-demo { order: 5; } #w-help { order: 6; }
+      #w-readme, #w-demo, #w-status { margin: 0; }
     }
-    @media (max-width: 720px) {
-      .nav { display: none; }
-      .btn-gh { margin-left: auto; }
-      .vs { grid-template-columns: minmax(0, 1fr); }
-      .legend { display: none; }
-    }
-    @media (max-width: 560px) {
-      body { font-size: 16px; }
-      .wrap { padding: 0 20px; }
-      .hero { padding: 64px 0 56px; }
-      .pill { margin-bottom: 26px; font-size: 13px; }
-      .lead { margin-bottom: 36px; }
-      .install-cmd { font-size: 14px; padding: 18px; }
-      .facts-inline { gap: 8px 18px; font-size: 13.5px; }
-      .panel { padding: 20px; border-radius: 18px; }
-      .clock { font-size: 28px; }
-      .side { padding: 16px; gap: 14px; }
-      .section { padding-top: 96px; }
-      .head { margin-bottom: 40px; }
-      .head p { font-size: 16.5px; }
-      .features { grid-template-columns: minmax(0, 1fr); }
-      .feature { padding: 26px 22px 28px; }
-      .cmd { padding: 14px 8px 14px 16px; }
-      .cmd-group h3 { padding: 12px 16px; }
-      .cta { margin-top: 96px; padding: 64px 4px; }
-      .actions .btn { width: 100%; }
-      .foot { padding: 32px 20px 40px; }
+    @media (max-width: 759px) {
+      body { font-size: 15px; }
+      .desk { padding: 12px 10px 20px; }
+      .icons { position: static; width: auto; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 4px; margin-bottom: 16px; }
+      .icon { width: 100%; }
+      .cols { gap: 18px; }
+      .ctrls .mx { display: none; }
+      .tasks { display: none; }
+      .hello { padding: 18px 16px 20px; }
+      .wordmark { font-size: 34px; }
+      .hello h1 { font-size: 23px; }
+      .notepad { height: auto; }
+      .console { min-height: 0; }
+      .list-head { display: none; }
+      .opt { grid-template-columns: minmax(0, 1fr); }
+      .opt > * { padding: 2px 6px; }
+      .opt { padding: 4px 0; }
+      .opt + .opt { border-top: 1px solid var(--light); }
+      .mark { position: static; margin-top: 20px; text-align: center; }
     }
   </style>
 </head>
 <body>
-  <a class="skip" href="#main">Skip to content</a>
+  <a class="skip" href="#w-welcome">Skip to content</a>
 
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <defs>
@@ -532,383 +324,345 @@
         <circle cx="32" cy="32" r="21" fill="none" stroke="url(#ring-fill)" stroke-width="11"/>
         <path d="M18.5 22.5 A21 21 0 0 1 31 11" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="3" stroke-linecap="round"/>
       </symbol>
-      <symbol id="i-copy" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M5 15H4.5A1.5 1.5 0 0 1 3 13.5v-9A1.5 1.5 0 0 1 4.5 3h9A1.5 1.5 0 0 1 15 4.5V5"/></g></symbol>
-      <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
-      <symbol id="i-github" viewBox="0 0 16 16"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></symbol>
-      <symbol id="i-cursor" viewBox="0 0 24 24"><path d="M5 3v16l4.5-4.2 3 6.4 3-1.4-3-6.3H18z" fill="#fff" stroke="#111" stroke-width="1.2" stroke-linejoin="round"/></symbol>
+      <symbol id="ico-app" viewBox="0 0 32 32">
+        <circle cx="16" cy="16" r="10" fill="none" stroke="#000" stroke-width="8"/>
+        <circle cx="16" cy="16" r="10" fill="none" stroke="#23a55a" stroke-width="6"/>
+        <path d="M10 12.5a7 7 0 0 1 5-3.5" fill="none" stroke="#bdf5d2" stroke-width="2"/>
+      </symbol>
+      <symbol id="ico-note" viewBox="0 0 32 32">
+        <path d="M6.5 2.5h14l5 5v22h-19z" fill="#fff" stroke="#000"/>
+        <path d="M20.5 2.5v5h5" fill="#c0c0c0" stroke="#000"/>
+        <path d="M9 11.5h13M9 14.5h13M9 17.5h13M9 20.5h13M9 23.5h8" stroke="#000080"/>
+      </symbol>
+      <symbol id="ico-ps" viewBox="0 0 32 32">
+        <rect x="2.5" y="5.5" width="27" height="21" fill="#012456" stroke="#000"/>
+        <rect x="3" y="6" width="26" height="3" fill="#c0c0c0"/>
+        <path d="M3 9.5h26" stroke="#000"/>
+        <path d="M7 13l5 3.5L7 20" fill="none" stroke="#fff" stroke-width="2"/>
+        <path d="M14 21h7" stroke="#fff" stroke-width="2"/>
+      </symbol>
+      <symbol id="ico-cmd" viewBox="0 0 32 32">
+        <rect x="2.5" y="5.5" width="27" height="21" fill="#0c0c0c" stroke="#000"/>
+        <rect x="3" y="6" width="26" height="3" fill="#c0c0c0"/>
+        <path d="M3 9.5h26" stroke="#000"/>
+        <path d="M7 13l5 3.5L7 20" fill="none" stroke="#ccc" stroke-width="2"/>
+        <path d="M14 21h7" stroke="#ccc" stroke-width="2"/>
+      </symbol>
+      <symbol id="ico-status" viewBox="0 0 32 32">
+        <circle cx="14" cy="10" r="5.5" fill="#6268e8" stroke="#000"/>
+        <path d="M4.5 27.5c0-6 4-10 9.5-10s9.5 4 9.5 10z" fill="#6268e8" stroke="#000"/>
+        <circle cx="24" cy="23" r="5" fill="#23a55a" stroke="#000"/>
+      </symbol>
+      <symbol id="ico-film" viewBox="0 0 32 32">
+        <rect x="3.5" y="6.5" width="25" height="19" fill="#222" stroke="#000"/>
+        <path d="M5 8h2v2H5zM5 12h2v2H5zM5 16h2v2H5zM5 20h2v2H5zM25 8h2v2h-2zM25 12h2v2h-2zM25 16h2v2h-2zM25 20h2v2h-2z" fill="#fff"/>
+        <rect x="9" y="8" width="14" height="16" fill="#1084d0"/>
+        <path d="M14 12.5v7l6-3.5z" fill="#fff"/>
+      </symbol>
+      <symbol id="ico-help" viewBox="0 0 32 32">
+        <path d="M6.5 4.5h17l2 2v22h-17l-2-2z" fill="#000080" stroke="#000"/>
+        <path d="M8.5 26.5h17" stroke="#fff"/>
+        <path d="M12.5 12a3.5 3.5 0 1 1 5 3.2c-1 .5-1.5 1.2-1.5 2.3v1" fill="none" stroke="#ffff00" stroke-width="2.2"/>
+        <rect x="14.9" y="20.5" width="2.2" height="2.2" fill="#ffff00"/>
+      </symbol>
+      <symbol id="ico-bin" viewBox="0 0 32 32">
+        <path d="M8.5 9.5h15l-1.5 19h-12z" fill="#dfdfdf" stroke="#000"/>
+        <path d="M6.5 6.5h19v3h-19z" fill="#c0c0c0" stroke="#000"/>
+        <path d="M13 5.5h6" stroke="#000"/>
+        <path d="M12.5 12v14M16 12v14M19.5 12v14" stroke="#808080"/>
+      </symbol>
+      <symbol id="ico-folder" viewBox="0 0 32 32">
+        <path d="M2.5 8.5h10l2 3h15v16h-27z" fill="#f4d35e" stroke="#000"/>
+        <path d="M3 12.5h26" stroke="#b8901c"/>
+        <rect x="1.5" y="19.5" width="11" height="11" fill="#fff" stroke="#000"/>
+        <path d="M4.5 28.5c0-3.5 1.5-5.5 5-5.5" fill="none" stroke="#000" stroke-width="1.6"/>
+        <path d="M8 20.5l3.5 2.5L8 25.5z"/>
+      </symbol>
+      <symbol id="ico-info" viewBox="0 0 32 32">
+        <circle cx="16" cy="16" r="12.5" fill="#fff" stroke="#000"/>
+        <circle cx="16" cy="9.5" r="2" fill="#000080"/>
+        <path d="M13 13.5h4.5v9H19v2h-6v-2h1.5v-7H13z" fill="#000080"/>
+      </symbol>
+      <symbol id="g-min" viewBox="0 0 10 9"><rect x="1" y="6" width="6" height="2"/></symbol>
+      <symbol id="g-max" viewBox="0 0 10 9"><path d="M0 0h9v9H0zM1 2v6h7V2z" fill-rule="evenodd"/></symbol>
+      <symbol id="g-x" viewBox="0 0 10 9"><path d="M1 0h2l2 2.5L7 0h2L6 4.5 9 9H7L5 6.5 3 9H1l3-4.5z"/></symbol>
+      <symbol id="g-cursor" viewBox="0 0 24 24"><path d="M5 3v16l4.5-4.2 3 6.4 3-1.4-3-6.3H18z" fill="#fff" stroke="#000" stroke-width="1.2" stroke-linejoin="round"/></symbol>
     </defs>
   </svg>
 
-  <div class="top" id="top">
-    <div class="wrap">
-      <a class="brand" href="/" aria-label="notidle home"><span>n</span><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#ring"/></svg><span>tidle</span></a>
-      <nav class="nav" aria-label="Sections">
-        <a href="#how">How it works</a>
-        <a href="#features">Features</a>
-        <a href="#commands">Commands</a>
-      </nav>
-      <a class="btn-gh" href="https://github.com/ediiloupatty/notidle"><svg aria-hidden="true"><use href="#i-github"/></svg>GitHub</a>
-    </div>
-  </div>
+  <main class="desk" id="desk">
+    <ul class="icons" aria-label="Desktop">
+      <li><button class="icon" type="button" data-open="w-welcome"><svg aria-hidden="true"><use href="#ico-app"/></svg><span>Welcome</span></button></li>
+      <li><button class="icon" type="button" data-open="w-shell"><svg aria-hidden="true"><use href="#ico-ps"/></svg><span>Install</span></button></li>
+      <li><button class="icon" type="button" data-open="w-status"><svg aria-hidden="true"><use href="#ico-status"/></svg><span>Try it</span></button></li>
+      <li><button class="icon" type="button" data-open="w-readme"><svg aria-hidden="true"><use href="#ico-note"/></svg><span>README.txt</span></button></li>
+      <li><button class="icon" type="button" data-open="w-demo"><svg aria-hidden="true"><use href="#ico-film"/></svg><span>demo.mp4</span></button></li>
+      <li><button class="icon" type="button" data-open="w-help"><svg aria-hidden="true"><use href="#ico-help"/></svg><span>Help</span></button></li>
+      <li><a class="icon" href="https://github.com/ediiloupatty/notidle"><svg aria-hidden="true"><use href="#ico-folder"/></svg><span>GitHub</span></a></li>
+      <li><button class="icon" type="button" data-open="w-bin"><svg aria-hidden="true"><use href="#ico-bin"/></svg><span>Recycle Bin</span></button></li>
+    </ul>
 
-  <main id="main">
-    <section class="hero">
-      <div class="wrap">
-        <a class="pill rise" href="https://github.com/ediiloupatty/notidle"><span class="live" aria-hidden="true"></span>Free &amp; open source<span class="sep" aria-hidden="true"></span>Windows 10/11<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
-        <h1 class="rise">Stay <span class="grad">green</span><br>while you're away.</h1>
-        <p class="lead rise">notidle keeps your Discord status Online when you step away from the PC. One command to install, one shortcut to switch it on.</p>
+    <div class="cols">
+      <div class="col col-a">
 
-        <div class="install rise" id="install">
-          <div class="install-bar">
-            <div class="seg" role="tablist" aria-label="Install with">
-              <button id="tab-ps" role="tab" type="button" aria-selected="true" aria-controls="install-panel">PowerShell</button>
-              <button id="tab-npm" role="tab" type="button" aria-selected="false" aria-controls="install-panel" tabindex="-1">npm</button>
+        <section class="win active" id="w-welcome" data-icon="#ico-app" aria-labelledby="t-welcome">
+          <div class="title"><svg aria-hidden="true"><use href="#ico-app"/></svg><h2 id="t-welcome">Welcome</h2><div class="ctrls"><button type="button" data-act="min" aria-label="Minimize"><svg aria-hidden="true"><use href="#g-min"/></svg></button><button type="button" class="mx" data-act="max" aria-label="Maximize"><svg aria-hidden="true"><use href="#g-max"/></svg></button><button type="button" class="x" data-act="close" aria-label="Close"><svg aria-hidden="true"><use href="#g-x"/></svg></button></div></div>
+          <div class="body">
+            <div class="hello">
+              <div class="hello-top">Welcome to <span class="wordmark" role="img" aria-label="notidle">n<svg viewBox="0 0 64 64" aria-hidden="true"><use href="#ring"/></svg>tidle</span></div>
+              <div class="rule" aria-hidden="true"></div>
+              <h1>Stay green while you're away.</h1>
+              <p>notidle keeps your Discord status Online when you step away from the PC. One command to install, one shortcut to switch it on.</p>
             </div>
-            <button class="copy" id="copy" type="button" data-copy-from="cmd"><svg class="i-copy" aria-hidden="true"><use href="#i-copy"/></svg><svg class="i-check" aria-hidden="true"><use href="#i-check"/></svg><span>Copy</span></button>
+            <div class="row">
+              <button class="btn default" type="button" data-copy-ps="install.ps1">Copy install command</button>
+              <button class="btn" type="button" data-open="w-demo">Watch the demo</button>
+              <a class="btn" href="https://github.com/ediiloupatty/notidle">GitHub</a>
+            </div>
+            <p class="small">Windows 10/11 · free and open source · MIT License</p>
           </div>
-          <div class="install-cmd" id="install-panel" role="tabpanel" aria-labelledby="tab-ps" tabindex="0">
-            <span class="prompt mono" id="prompt" aria-hidden="true">PS&gt;</span><code id="cmd" data-ps="install.ps1">irm https://raw.githubusercontent.com/ediiloupatty/notidle/main/site/install.ps1 | iex</code>
-          </div>
-        </div>
+        </section>
 
-        <ul class="facts-inline rise">
-          <li><svg aria-hidden="true"><use href="#i-check"/></svg><span id="req">Nothing else to install</span></li>
-          <li><svg aria-hidden="true"><use href="#i-check"/></svg>No admin rights</li>
-          <li><svg aria-hidden="true"><use href="#i-check"/></svg><span>Toggle with <span class="kbd-inline">Ctrl+Alt+O</span></span></li>
-        </ul>
+        <section class="win" id="w-readme" data-icon="#ico-note" aria-labelledby="t-readme">
+          <div class="title"><svg aria-hidden="true"><use href="#ico-note"/></svg><h2 id="t-readme">README.txt - Notepad</h2><div class="ctrls"><button type="button" data-act="min" aria-label="Minimize"><svg aria-hidden="true"><use href="#g-min"/></svg></button><button type="button" class="mx" data-act="max" aria-label="Maximize"><svg aria-hidden="true"><use href="#g-max"/></svg></button><button type="button" class="x" data-act="close" aria-label="Close"><svg aria-hidden="true"><use href="#g-x"/></svg></button></div></div>
+          <div class="menubar" aria-hidden="true"><span><u>F</u>ile</span><span><u>E</u>dit</span><span><u>S</u>earch</span><span><u>H</u>elp</span></div>
+          <div class="notepad-wrap">
+<pre class="notepad scroll" tabindex="0">notidle
+=======
+
+Keep your Discord status Online (green) while you're away from the PC. Toggle it with a keyboard shortcut. Windows only.
+
+
+HOW IT WORKS
+
+Discord marks you Idle when Windows reports no mouse or keyboard input for a while. While notidle is on, it checks every second how long the PC has been idle. Once that reaches 60 seconds, it moves the mouse 1 px right and 1 px back.
+
+The cursor ends where it started and nothing gets clicked. It never does anything while you're using the PC.
+
+While on, it also stops Windows from sleeping or turning the screen off.
+
+
+WHAT IT IS
+
+A small PowerShell script with a tray icon. It needs no admin rights, sends nothing over the network and doesn't touch Discord itself.
+
+It installs into %LOCALAPPDATA%\notidle and adds a shortcut to your Startup folder, so it runs when you log in. It always starts OFF.
+
+
+HOW TO USE
+
+1. Open PowerShell (press the Windows key, type powershell), paste the install command and press Enter.
+2. Press Ctrl+Alt+O (the letter O). The dot in your tray turns green.
+3. Walk away. Press the shortcut again when you're back.</pre>
+          </div>
+        </section>
+
+        <section class="win" id="w-demo" data-icon="#ico-film" aria-labelledby="t-demo">
+          <div class="title"><svg aria-hidden="true"><use href="#ico-film"/></svg><h2 id="t-demo">demo.mp4 - Media Player</h2><div class="ctrls"><button type="button" data-act="min" aria-label="Minimize"><svg aria-hidden="true"><use href="#g-min"/></svg></button><button type="button" class="mx" data-act="max" aria-label="Maximize"><svg aria-hidden="true"><use href="#g-max"/></svg></button><button type="button" class="x" data-act="close" aria-label="Close"><svg aria-hidden="true"><use href="#g-x"/></svg></button></div></div>
+          <div class="body">
+            <div class="video">
+              <iframe src="https://www.youtube-nocookie.com/embed/7j-cUsHCPiw" title="notidle demo" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+            </div>
+          </div>
+        </section>
+
       </div>
-    </section>
+      <div class="col col-b">
 
-    <div class="showcase wrap reveal">
-      <div class="panel" role="img" aria-label="While you're away, your status goes Idle without notidle and stays Online with notidle">
-        <div class="panel-head">
-          <div>
-            <div class="eyebrow-sm">Away from PC</div>
-            <div class="clock" id="away">00:00</div>
-          </div>
-          <div class="legend"><span><i></i>Online</span><span><i class="a"></i>Idle</span></div>
-        </div>
-        <div class="track">
-          <div class="track-fill" id="track-fill"></div>
-          <div class="track-mark" id="track-mark"><span>Discord goes Idle</span></div>
-        </div>
-        <div class="vs">
-          <div class="side" id="without">
-            <div class="avatar">
-              <div class="face"><svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="38" r="15" fill="#fff" fill-opacity=".85"/><path d="M20 86c3-17 14-26 28-26s25 9 28 26" fill="#fff" fill-opacity=".85"/></svg></div>
-              <span class="badge"><i></i></span>
-            </div>
-            <div class="who">
-              <div class="name">you</div>
-              <div class="status"><span class="st-on">Online</span><span class="st-idle">Idle</span></div>
-            </div>
-            <span class="tag">Without notidle</span>
-          </div>
-          <div class="side is-with" id="with">
-            <div class="avatar">
-              <div class="face"><svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="38" r="15" fill="#fff" fill-opacity=".85"/><path d="M20 86c3-17 14-26 28-26s25 9 28 26" fill="#fff" fill-opacity=".85"/></svg></div>
-              <span class="badge"><i></i></span>
-              <svg class="cursor" id="cursor" aria-hidden="true"><use href="#i-cursor"/></svg>
-            </div>
-            <div class="who">
-              <div class="name">you</div>
-              <div class="status"><span class="st-on">Online</span><span class="st-idle">Idle</span></div>
-            </div>
-            <span class="tag g">With notidle</span>
-          </div>
-        </div>
-      </div>
-    </div>
+        <section class="win" id="w-shell" data-icon="#ico-ps" aria-labelledby="t-shell">
+          <div class="title"><svg aria-hidden="true"><use id="shell-icon" href="#ico-ps"/></svg><h2 id="t-shell">Windows PowerShell</h2><div class="ctrls"><button type="button" data-act="min" aria-label="Minimize"><svg aria-hidden="true"><use href="#g-min"/></svg></button><button type="button" class="mx" data-act="max" aria-label="Maximize"><svg aria-hidden="true"><use href="#g-max"/></svg></button><button type="button" class="x" data-act="close" aria-label="Close"><svg aria-hidden="true"><use href="#g-x"/></svg></button></div></div>
+          <div class="body">
+            <div>
+              <div class="tabs" role="tablist" aria-label="Install with" id="shell-tabs">
+                <button class="tab" type="button" role="tab" id="tab-ps" aria-selected="true" aria-controls="p-ps">PowerShell</button>
+                <button class="tab" type="button" role="tab" id="tab-npm" aria-selected="false" aria-controls="p-npm" tabindex="-1">npm</button>
+              </div>
+              <div class="panel">
+                <div id="p-ps" role="tabpanel" aria-labelledby="tab-ps">
+<pre class="console">PS C:\Users\you> <span class="c-cmd" data-ps="install.ps1">irm https://raw.githubusercontent.com/ediiloupatty/notidle/main/site/install.ps1 | iex</span>
 
-    <section class="section wrap" id="how">
-      <div class="head reveal">
-        <span class="kicker">How it works</span>
-        <h2>Set up in a minute. Then forget it.</h2>
-        <p>Install once, press one shortcut, walk away. That's all there is to it.</p>
-      </div>
-      <ol class="steps">
-        <li class="step card reveal">
-          <div class="visual" aria-hidden="true">
-            <div class="term">
-              <div class="term-bar"><i></i><i></i><i></i></div>
-              <div class="term-body">
-                <div><span class="t-ok">PS&gt;</span> irm …/install.ps1 | iex</div>
-                <div class="t-ok">notidle installed.</div>
-                <div class="t-mut">Press Ctrl+Alt+O to turn it ON / OFF.</div>
-                <div class="t-mut">Starts when you log in to Windows.</div>
+<span class="c-ok">notidle installed.</span>
+
+  Press Ctrl+Alt+O to turn it ON / OFF.
+  Tray icon: green = ON, gray = OFF. Left-click it to toggle too.
+  Starts automatically when you log in to Windows.
+
+PS C:\Users\you> <span class="caret"></span></pre>
+                </div>
+                <div id="p-npm" role="tabpanel" aria-labelledby="tab-npm" hidden>
+<pre class="console cmdline">C:\Users\you><span class="c-cmd">npx notidle</span>
+notidle installed.
+
+  Press Ctrl+Alt+O to turn it ON / OFF.
+  Tray icon: green = ON, gray = OFF. Left-click it to toggle too.
+  Starts automatically when you log in to Windows.
+
+  Change shortcut:  npx notidle hotkey ctrl+shift+f9
+  Remove:           npx notidle uninstall
+
+C:\Users\you><span class="caret"></span></pre>
+                </div>
+                <div class="row end">
+                  <span class="hint" id="shell-hint">Paste it into PowerShell and press Enter. Nothing else to install.</span>
+                  <button class="btn" type="button" id="shell-copy">Copy</button>
+                </div>
               </div>
             </div>
           </div>
-          <div class="step-body">
-            <span class="step-n">01</span>
-            <h3>Install</h3>
-            <p>Open PowerShell (press the Windows key and type <b>powershell</b>), paste the command and press Enter. It starts with Windows from now on.</p>
-          </div>
-        </li>
-        <li class="step card reveal">
-          <div class="visual" aria-hidden="true">
-            <div class="combo">
-              <div class="keys"><kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>O</kbd></div>
-              <div class="tray"><span class="dot"></span><span>notidle:</span><span class="flip"><span class="off">OFF</span><span class="on">ON</span></span></div>
+        </section>
+
+        <section class="win" id="w-status" data-icon="#ico-status" aria-labelledby="t-status">
+          <div class="title"><svg aria-hidden="true"><use href="#ico-status"/></svg><h2 id="t-status">Status - Try it</h2><div class="ctrls"><button type="button" data-act="min" aria-label="Minimize"><svg aria-hidden="true"><use href="#g-min"/></svg></button><button type="button" class="mx" data-act="max" aria-label="Maximize"><svg aria-hidden="true"><use href="#g-max"/></svg></button><button type="button" class="x" data-act="close" aria-label="Close"><svg aria-hidden="true"><use href="#g-x"/></svg></button></div></div>
+          <div class="body">
+            <div class="profile" id="profile">
+              <div class="avatar">
+                <div class="face"><svg viewBox="0 0 96 96" aria-hidden="true"><circle cx="48" cy="38" r="15" fill="#fff" fill-opacity=".9"/><path d="M20 86c3-17 14-26 28-26s25 9 28 26" fill="#fff" fill-opacity=".9"/></svg></div>
+                <span class="badge"><i></i></span>
+              </div>
+              <svg class="cursor" id="cursor" aria-hidden="true"><use href="#g-cursor"/></svg>
+              <div class="who"><b>you</b><div class="st"><span class="st-on">Online</span><span class="st-idle">Idle</span></div></div>
+              <span class="nudged" id="nudged" aria-hidden="true">mouse moved 1 px</span>
+            </div>
+            <fieldset>
+              <legend>Time until Idle (sped up)</legend>
+              <div class="progress" role="progressbar" aria-label="Time until Idle" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="meter"><div class="bar" id="bar"></div></div>
+              <p class="msg" id="msg">Take your hands off the mouse and keyboard for a few seconds and watch your status.</p>
+            </fieldset>
+            <div class="row">
+              <button class="btn" type="button" id="toggle" aria-pressed="false">Turn notidle on</button>
+              <span class="hint" id="toggle-hint">or press Ctrl+Alt+O</span>
             </div>
           </div>
-          <div class="step-body">
-            <span class="step-n">02</span>
-            <h3>Switch it on</h3>
-            <p>Press <b>Ctrl+Alt+O</b> (the letter O). The dot in your tray turns green. You can also left-click the dot.</p>
-          </div>
-        </li>
-        <li class="step card reveal">
-          <div class="visual" aria-hidden="true">
-            <div class="timer">
-              <svg class="ring-t" viewBox="0 0 120 120"><circle class="bg" cx="60" cy="60" r="50"/><circle class="fg" cx="60" cy="60" r="50" pathLength="100"/></svg>
-              <div class="timer-label"><b>60s</b><span>idle</span></div>
-              <svg class="cursor"><use href="#i-cursor"/></svg>
+          <div class="statusbar"><span id="sb-on">notidle: OFF</span><span id="sb-st">Discord: Online</span></div>
+        </section>
+
+        <section class="win" id="w-help" data-icon="#ico-help" aria-labelledby="t-help">
+          <div class="title"><svg aria-hidden="true"><use href="#ico-help"/></svg><h2 id="t-help">notidle Help</h2><div class="ctrls"><button type="button" data-act="min" aria-label="Minimize"><svg aria-hidden="true"><use href="#g-min"/></svg></button><button type="button" class="mx" data-act="max" aria-label="Maximize"><svg aria-hidden="true"><use href="#g-max"/></svg></button><button type="button" class="x" data-act="close" aria-label="Close"><svg aria-hidden="true"><use href="#g-x"/></svg></button></div></div>
+          <div class="body">
+            <div>
+              <div class="tabs" role="tablist" aria-label="Commands for">
+                <button class="tab" type="button" role="tab" id="tab-hps" aria-selected="true" aria-controls="h-ps">PowerShell</button>
+                <button class="tab" type="button" role="tab" id="tab-hnode" aria-selected="false" aria-controls="h-node" tabindex="-1">Node.js</button>
+              </div>
+              <div class="panel">
+                <div id="h-ps" role="tabpanel" aria-labelledby="tab-hps">
+                  <div class="list">
+                    <div class="list-head" aria-hidden="true"><span>Command</span><span>What it does</span></div>
+                    <div class="listbox" role="listbox" tabindex="0" aria-label="PowerShell commands">
+                      <div class="opt" role="option" id="o-1" aria-selected="true" data-ps="install.ps1"><code>irm …/install.ps1 | iex</code><span>Install or update, then start</span></div>
+                      <div class="opt" role="option" id="o-2" aria-selected="false" data-ps="uninstall.ps1"><code>irm …/uninstall.ps1 | iex</code><span>Remove everything</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div id="h-node" role="tabpanel" aria-labelledby="tab-hnode" hidden>
+                  <div class="list">
+                    <div class="list-head" aria-hidden="true"><span>Command</span><span>What it does</span></div>
+                    <div class="listbox" role="listbox" tabindex="0" aria-label="Node.js commands">
+                      <div class="opt" role="option" id="o-3" aria-selected="true" data-cmd="npx notidle"><code>npx notidle</code><span>Install or update, then start</span></div>
+                      <div class="opt" role="option" id="o-4" aria-selected="false" data-cmd="npx notidle hotkey ctrl+shift+f9"><code>npx notidle hotkey ctrl+shift+f9</code><span>Change the shortcut (ctrl, alt, shift, win + A–Z, 0–9, F1–F24)</span></div>
+                      <div class="opt" role="option" id="o-5" aria-selected="false" data-cmd="npx notidle interval 120"><code>npx notidle interval 120</code><span>Idle seconds before each nudge (10–3600, default 60)</span></div>
+                      <div class="opt" role="option" id="o-6" aria-selected="false" data-cmd="npx notidle start"><code>npx notidle start</code><span>Start the background agent</span></div>
+                      <div class="opt" role="option" id="o-7" aria-selected="false" data-cmd="npx notidle stop"><code>npx notidle stop</code><span>Quit the background agent</span></div>
+                      <div class="opt" role="option" id="o-8" aria-selected="false" data-cmd="npx notidle status"><code>npx notidle status</code><span>Show what's installed and running</span></div>
+                      <div class="opt" role="option" id="o-9" aria-selected="false" data-cmd="npx notidle uninstall"><code>npx notidle uninstall</code><span>Remove everything</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="row end">
+                  <span class="hint" id="help-hint">Double-click a command to copy it.</span>
+                  <button class="btn" type="button" id="help-copy">Copy</button>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="step-body">
-            <span class="step-n">03</span>
-            <h3>Walk away</h3>
-            <p>After 60 seconds without input it nudges the mouse, so you stay Online. Press the shortcut again when you're back.</p>
-          </div>
-        </li>
-      </ol>
-    </section>
+        </section>
 
-    <section class="section wrap" id="demo">
-      <div class="head reveal">
-        <span class="kicker">Demo</span>
-        <h2>Watch it work</h2>
       </div>
-      <div class="video-frame card reveal">
-        <div class="video">
-          <iframe src="https://www.youtube-nocookie.com/embed/7j-cUsHCPiw" title="notidle demo" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-        </div>
-      </div>
-    </section>
+    </div>
 
-    <section class="section wrap" id="features">
-      <div class="head reveal">
-        <span class="kicker">What it does</span>
-        <h2>Small, quiet and careful.</h2>
-        <p>A tiny PowerShell script with a tray icon. It does one thing and stays out of your way.</p>
-      </div>
-      <div class="features reveal">
-        <div class="feature">
-          <div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3.5 10.7 20l2.4-7 7-2.4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></div>
-          <h3>1 px, then back</h3>
-          <p>After 60 seconds of no input it moves the mouse 1 px right and 1 px back. The cursor ends where it started.</p>
-        </div>
-        <div class="feature">
-          <div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M6.5 9h.01M10 9h.01M14 9h.01M17.5 9h.01M8 12.5h.01M12 12.5h.01M16 12.5h.01M8 15.5h8"/></g></svg></div>
-          <h3>Never in your way</h3>
-          <p>Nothing happens while you're using the PC, and nothing ever gets clicked.</p>
-        </div>
-        <div class="feature">
-          <div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="3.5" width="19" height="13" rx="2.5"/><path d="M8 20.5h8M12 16.5v4"/></g></svg></div>
-          <h3>Keeps the PC awake</h3>
-          <p>While it's on, Windows won't go to sleep or turn the screen off.</p>
-        </div>
-        <div class="feature">
-          <div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.5s7.5-3.6 7.5-9.5V5.5L12 2.5l-7.5 3V12c0 5.9 7.5 9.5 7.5 9.5z"/><path d="m9 12 2.2 2.2L15.5 10"/></g></svg></div>
-          <h3>Touches nothing else</h3>
-          <p>No admin rights, no network, and it never reads or changes Discord.</p>
-        </div>
-        <div class="feature">
-          <div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v8.5"/><path d="M17.7 6.8a8 8 0 1 1-11.4 0"/></g></svg></div>
-          <h3>Always starts off</h3>
-          <p>It runs when you log in and waits in the tray. Nothing happens until you switch it on.</p>
-        </div>
-        <div class="feature">
-          <div class="icon"><svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m16 17.5 5.5-5.5L16 6.5M8 6.5 2.5 12 8 17.5"/></g></svg></div>
-          <h3>Free and open source</h3>
-          <p>MIT licensed. Every line is on <a href="https://github.com/ediiloupatty/notidle" style="color:var(--text);text-decoration:underline;text-decoration-color:var(--line-2);text-underline-offset:3px">GitHub</a> to read.</p>
-        </div>
-      </div>
-    </section>
-
-    <section class="section wrap" id="commands">
-      <div class="cmds">
-        <div class="head reveal">
-          <span class="kicker">Commands</span>
-          <h2>Everything, from the terminal.</h2>
-          <p>Change the shortcut, the timing, or remove it all. The Node.js commands work no matter which way you installed.</p>
-        </div>
-        <div class="reveal">
-          <div class="cmd-group card">
-            <h3>PowerShell <small>No Node.js needed</small></h3>
-            <ul class="cmd-list">
-              <li class="cmd"><code data-ps-short="install.ps1">irm …/install.ps1 | iex</code><p>Install or update, then start</p><button class="copy-sm" type="button" data-ps-copy="install.ps1" aria-label="Copy install command"><svg class="i-copy" aria-hidden="true"><use href="#i-copy"/></svg><svg class="i-check" aria-hidden="true"><use href="#i-check"/></svg></button></li>
-              <li class="cmd"><code data-ps-short="uninstall.ps1">irm …/uninstall.ps1 | iex</code><p>Remove everything</p><button class="copy-sm" type="button" data-ps-copy="uninstall.ps1" aria-label="Copy uninstall command"><svg class="i-copy" aria-hidden="true"><use href="#i-copy"/></svg><svg class="i-check" aria-hidden="true"><use href="#i-check"/></svg></button></li>
-            </ul>
-          </div>
-          <div class="cmd-group card">
-            <h3>Node.js <small>npx, no global install</small></h3>
-            <ul class="cmd-list">
-              <li class="cmd"><code>npx notidle</code><p>Install or update, then start</p><button class="copy-sm" type="button" data-copy="npx notidle" aria-label="Copy npx notidle"><svg class="i-copy" aria-hidden="true"><use href="#i-copy"/></svg><svg class="i-check" aria-hidden="true"><use href="#i-check"/></svg></button></li>
-              <li class="cmd"><code>npx notidle hotkey <span class="arg">ctrl+shift+f9</span></code><p>Change the shortcut. Modifiers: ctrl, alt, shift, win. Key: A–Z, 0–9, F1–F24.</p><button class="copy-sm" type="button" data-copy="npx notidle hotkey ctrl+shift+f9" aria-label="Copy hotkey command"><svg class="i-copy" aria-hidden="true"><use href="#i-copy"/></svg><svg class="i-check" aria-hidden="true"><use href="#i-check"/></svg></button></li>
-              <li class="cmd"><code>npx notidle interval <span class="arg">120</span></code><p>Idle seconds before each nudge (<span class="nw">10–3600</span>, default 60)</p><button class="copy-sm" type="button" data-copy="npx notidle interval 120" aria-label="Copy interval command"><svg class="i-copy" aria-hidden="true"><use href="#i-copy"/></svg><svg class="i-check" aria-hidden="true"><use href="#i-check"/></svg></button></li>
-              <li class="cmd"><code>npx notidle start <span class="t-mut">/</span> stop</code><p>Start or quit the background agent</p><button class="copy-sm" type="button" data-copy="npx notidle start" aria-label="Copy start command"><svg class="i-copy" aria-hidden="true"><use href="#i-copy"/></svg><svg class="i-check" aria-hidden="true"><use href="#i-check"/></svg></button></li>
-              <li class="cmd"><code>npx notidle status</code><p>Show what's installed and running</p><button class="copy-sm" type="button" data-copy="npx notidle status" aria-label="Copy status command"><svg class="i-copy" aria-hidden="true"><use href="#i-copy"/></svg><svg class="i-check" aria-hidden="true"><use href="#i-check"/></svg></button></li>
-              <li class="cmd"><code>npx notidle uninstall</code><p>Remove everything</p><button class="copy-sm" type="button" data-copy="npx notidle uninstall" aria-label="Copy uninstall command"><svg class="i-copy" aria-hidden="true"><use href="#i-copy"/></svg><svg class="i-check" aria-hidden="true"><use href="#i-check"/></svg></button></li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="wrap">
-      <div class="cta card reveal">
-        <svg class="big-ring" viewBox="0 0 64 64" aria-hidden="true"><use href="#ring"/></svg>
-        <h2>Step away. Stay green.</h2>
-        <p>One command in PowerShell, and Ctrl+Alt+O does the rest.</p>
-        <div class="actions">
-          <button class="btn btn-primary" type="button" data-ps-copy="install.ps1"><svg class="i-copy" aria-hidden="true"><use href="#i-copy"/></svg><svg class="i-check" aria-hidden="true"><use href="#i-check"/></svg><span>Copy install command</span></button>
-          <a class="btn btn-ghost" href="https://github.com/ediiloupatty/notidle"><svg aria-hidden="true"><use href="#i-github"/></svg>View on GitHub</a>
-        </div>
-      </div>
-    </section>
+    <p class="mark">notidle · <a href="https://github.com/ediiloupatty/notidle/blob/main/LICENSE">MIT License</a> · Not affiliated with Discord.</p>
   </main>
 
-  <footer>
-    <div class="wrap foot">
-      <div class="foot-l">
-        <a class="brand" href="/" aria-label="notidle home"><span>n</span><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#ring"/></svg><span>tidle</span></a>
-        <span>Keep your Discord status green while you're away.</span>
+  <section class="win dialog" id="w-bin" data-icon="#ico-bin" aria-labelledby="t-bin" role="dialog" hidden>
+    <div class="title"><svg aria-hidden="true"><use href="#ico-bin"/></svg><h2 id="t-bin">Uninstall notidle</h2><div class="ctrls"><button type="button" class="x" data-act="close" aria-label="Close"><svg aria-hidden="true"><use href="#g-x"/></svg></button></div></div>
+    <div class="body">
+      <div class="dlg">
+        <svg aria-hidden="true"><use href="#ico-bin"/></svg>
+        <div class="dlg-text">
+          <p>To remove notidle and its Startup shortcut, run one of these:</p>
+          <div class="field"><code data-ps="uninstall.ps1">irm https://raw.githubusercontent.com/ediiloupatty/notidle/main/site/uninstall.ps1 | iex</code><button class="btn" type="button" data-copy-ps="uninstall.ps1">Copy</button></div>
+          <div class="field"><code>npx notidle uninstall</code><button class="btn" type="button" data-copy="npx notidle uninstall">Copy</button></div>
+        </div>
       </div>
-      <nav class="foot-links" aria-label="Links">
-        <a href="https://github.com/ediiloupatty/notidle">GitHub</a>
-        <a href="https://www.npmjs.com/package/notidle">npm</a>
-        <a href="https://github.com/ediiloupatty/notidle/issues">Report an issue</a>
-        <a href="https://github.com/ediiloupatty/notidle/blob/main/LICENSE">MIT License</a>
-      </nav>
-      <div class="fine">
-        <span>© 2026 Edi Loupatty</span>
-        <span>Not affiliated with Discord.</span>
+      <div class="dlg-btns"><button class="btn default" type="button" data-act="close">OK</button></div>
+    </div>
+  </section>
+
+  <section class="win dialog" id="w-about" data-icon="#ico-info" aria-labelledby="t-about" role="dialog" hidden>
+    <div class="title"><svg aria-hidden="true"><use href="#ico-info"/></svg><h2 id="t-about">About notidle</h2><div class="ctrls"><button type="button" class="x" data-act="close" aria-label="Close"><svg aria-hidden="true"><use href="#g-x"/></svg></button></div></div>
+    <div class="body">
+      <div class="dlg">
+        <svg aria-hidden="true"><use href="#ico-app"/></svg>
+        <div class="dlg-text">
+          <p><b>notidle</b><br>Keep your Discord status Online while you're away.</p>
+          <p>MIT License · © 2026 Edi Loupatty<br>Not affiliated with Discord.</p>
+          <p><a href="https://github.com/ediiloupatty/notidle">GitHub</a> · <a href="https://www.npmjs.com/package/notidle">npm</a> · <a href="https://github.com/ediiloupatty/notidle/issues">Report an issue</a></p>
+        </div>
       </div>
+      <div class="dlg-btns"><button class="btn default" type="button" data-act="close">OK</button></div>
+    </div>
+  </section>
+
+  <div class="startmenu" id="startmenu" hidden>
+    <div class="banner" aria-hidden="true"><span>not<i>idle</i></span></div>
+    <div class="menu" role="menu" aria-label="Start">
+      <button class="mi" type="button" role="menuitem" data-open="w-welcome"><svg aria-hidden="true"><use href="#ico-app"/></svg>Welcome</button>
+      <button class="mi" type="button" role="menuitem" data-open="w-shell"><svg aria-hidden="true"><use href="#ico-ps"/></svg>Install</button>
+      <button class="mi" type="button" role="menuitem" data-open="w-status"><svg aria-hidden="true"><use href="#ico-status"/></svg>Try it</button>
+      <button class="mi" type="button" role="menuitem" data-open="w-readme"><svg aria-hidden="true"><use href="#ico-note"/></svg>README.txt</button>
+      <button class="mi" type="button" role="menuitem" data-open="w-demo"><svg aria-hidden="true"><use href="#ico-film"/></svg>Demo</button>
+      <button class="mi" type="button" role="menuitem" data-open="w-help"><svg aria-hidden="true"><use href="#ico-help"/></svg>Help</button>
+      <hr>
+      <a class="mi" role="menuitem" href="https://github.com/ediiloupatty/notidle"><svg aria-hidden="true"><use href="#ico-folder"/></svg>GitHub</a>
+      <a class="mi" role="menuitem" href="https://www.npmjs.com/package/notidle"><svg aria-hidden="true"><use href="#ico-folder"/></svg>npm</a>
+      <hr>
+      <button class="mi" type="button" role="menuitem" data-open="w-bin"><svg aria-hidden="true"><use href="#ico-bin"/></svg>Uninstall…</button>
+      <button class="mi" type="button" role="menuitem" data-open="w-about"><svg aria-hidden="true"><use href="#ico-info"/></svg>About notidle</button>
+    </div>
+  </div>
+
+  <div class="balloon" id="balloon" role="status" hidden>
+    <div class="b-head"><svg aria-hidden="true"><use href="#ico-app"/></svg><b id="b-title">notidle</b><button class="b-x" type="button" id="b-x" aria-label="Close"><svg aria-hidden="true"><use href="#g-x"/></svg></button></div>
+    <p id="b-text"></p>
+  </div>
+
+  <footer class="taskbar">
+    <button class="start" type="button" id="start" aria-expanded="false" aria-controls="startmenu"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#ring"/></svg>Start</button>
+    <span class="sep" aria-hidden="true"></span>
+    <div class="tasks" id="tasks" aria-label="Open windows"></div>
+    <div class="tray">
+      <button class="tray-btn" type="button" id="tray" aria-pressed="false" aria-label="notidle (Ctrl+Alt+O)" title="notidle: OFF (Ctrl+Alt+O)"><svg viewBox="0 0 16 16" aria-hidden="true"><circle class="td" cx="8" cy="8" r="6.5"/><circle cx="6" cy="5.8" r="1.6" fill="#fff" fill-opacity=".55"/></svg></button>
+      <span class="clock" id="clock"></span>
     </div>
   </footer>
 
-  <div class="sr-only" id="live" aria-live="polite"></div>
-
   <script>
-    // Sticky header gets a hairline once the page scrolls.
     (function () {
-      var top = document.getElementById('top');
-      var onScroll = function () { top.classList.toggle('scrolled', window.scrollY > 4); };
-      window.addEventListener('scroll', onScroll, { passive: true });
-      onScroll();
-    })();
+      var $ = function (s, r) { return (r || document).querySelector(s); };
+      var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+      var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var touch = window.matchMedia('(hover: none)').matches;
 
-    // Sections fade up the first time they scroll into view.
-    (function () {
-      var els = document.querySelectorAll('.reveal');
-      if (!('IntersectionObserver' in window)) { els.forEach(function (el) { el.classList.add('in'); }); return; }
-      var io = new IntersectionObserver(function (entries) {
-        entries.forEach(function (e) {
-          if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
-        });
-      }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
-      els.forEach(function (el) { io.observe(el); });
-    })();
-
-    // Illustration: 0-14 simulated minutes away in 8 s, hold 2.5 s, repeat.
-    // Without notidle goes Idle at 10:00; with notidle the cursor nudges every minute and stays Online.
-    (function () {
-      var clock = document.getElementById('away');
-      var fill = document.getElementById('track-fill');
-      var without = document.getElementById('without');
-      var cursor = document.getElementById('cursor');
-      var IDLE_AT = 10, END = 14, RUN = 8000, HOLD = 2500;
-      document.getElementById('track-mark').style.left = (IDLE_AT / END * 100) + '%';
-      var pad = function (n) { return (n < 10 ? '0' : '') + n; };
-      var last = '';
-      var render = function (min) {
-        var m = Math.floor(min), s = Math.floor((min - m) * 60);
-        var text = pad(m) + ':' + pad(s);
-        if (text !== last) { clock.textContent = text; last = text; }
-        fill.style.transform = 'scaleX(' + (min / END) + ')';
-        without.classList.toggle('is-idle', min >= IDLE_AT);
-      };
-      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { render(12); return; }
-      var start = performance.now(), lastMinute = -1;
-      var tick = function (now) {
-        var t = (now - start) % (RUN + HOLD);
-        var min = Math.min(t / RUN, 1) * END;
-        render(min);
-        var m = Math.floor(min);
-        if (m !== lastMinute && t < RUN) {
-          lastMinute = m;
-          if (m > 0) {
-            cursor.classList.add('nudge');
-            setTimeout(function () { cursor.classList.remove('nudge'); }, 250);
-          }
-        }
-        if (t >= RUN) lastMinute = -1;
-        requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-    })();
-
-    // Install commands point at the site the page is served from (GitHub raw when opened as a file).
-    var RAW = 'https://raw.githubusercontent.com/ediiloupatty/notidle/main/site';
-    var BASE = /^https?:$/.test(location.protocol) ? location.origin : RAW;
-    var psCmd = function (file) { return 'irm ' + BASE + '/' + file + ' | iex'; };
-
-    (function () {
-      document.querySelectorAll('[data-ps]').forEach(function (el) { el.textContent = psCmd(el.getAttribute('data-ps')); });
-      document.querySelectorAll('[data-ps-short]').forEach(function (el) { el.title = psCmd(el.getAttribute('data-ps-short')); });
-
-      var cmd = document.getElementById('cmd');
-      var prompt = document.getElementById('prompt');
-      var req = document.getElementById('req');
-      var panel = document.getElementById('install-panel');
-      var tabs = [document.getElementById('tab-ps'), document.getElementById('tab-npm')];
-      var pick = function (tab, focus) {
-        tabs.forEach(function (t) {
-          var on = t === tab;
-          t.setAttribute('aria-selected', String(on));
-          t.tabIndex = on ? 0 : -1;
-        });
-        var ps = tab.id === 'tab-ps';
-        cmd.textContent = ps ? psCmd('install.ps1') : 'npx notidle';
-        prompt.textContent = ps ? 'PS>' : '$';
-        req.innerHTML = ps ? 'Nothing else to install' : 'Needs <a href="https://nodejs.org" style="text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line-2)">Node.js</a>';
-        panel.setAttribute('aria-labelledby', tab.id);
-        panel.scrollLeft = 0;
-        fade();
-        if (focus) tab.focus();
-      };
-      // Fade the right edge while a long command is cut off, so it reads as scrollable.
-      var fade = function () {
-        var over = panel.scrollWidth > panel.clientWidth + 1;
-        panel.classList.toggle('overflow', over);
-        panel.classList.toggle('end', over && panel.scrollLeft + panel.clientWidth >= panel.scrollWidth - 2);
-      };
-      panel.addEventListener('scroll', fade, { passive: true });
-      window.addEventListener('resize', fade);
-      if (document.fonts && document.fonts.ready) document.fonts.ready.then(fade);
-      fade();
-      tabs.forEach(function (t, i) {
-        t.addEventListener('click', function () { pick(t); });
-        t.addEventListener('keydown', function (e) {
-          if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-            e.preventDefault();
-            pick(tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length], true);
-          }
-        });
+      // Install commands point at the site the page is served from (GitHub raw when opened as a file).
+      var RAW = 'https://raw.githubusercontent.com/ediiloupatty/notidle/main/site';
+      var BASE = /^https?:$/.test(location.protocol) ? location.origin : RAW;
+      var psCmd = function (file) { return 'irm ' + BASE + '/' + file + ' | iex'; };
+      $$('[data-ps]').forEach(function (el) {
+        if (el.classList.contains('opt')) el.title = psCmd(el.getAttribute('data-ps'));
+        else el.textContent = psCmd(el.getAttribute('data-ps'));
       });
-    })();
 
-    // Copy buttons: the hero card copies the visible command, the others carry their own text.
-    (function () {
-      var live = document.getElementById('live');
-      var write = function (text) {
-        if (navigator.clipboard && window.isSecureContext) {
-          return navigator.clipboard.writeText(text).catch(function () { return legacy(text); });
-        }
-        return legacy(text);
-      };
+      /* ---------- clipboard ---------- */
       var legacy = function (text) {
         return new Promise(function (resolve, reject) {
           var ta = document.createElement('textarea');
@@ -924,27 +678,375 @@
           ok ? resolve() : reject();
         });
       };
-      document.querySelectorAll('[data-copy], [data-copy-from], [data-ps-copy]').forEach(function (btn) {
-        var label = btn.querySelector('span');
-        var original = label && label.textContent;
-        var timer;
-        btn.addEventListener('click', function () {
-          var text = btn.hasAttribute('data-copy-from')
-            ? document.getElementById(btn.getAttribute('data-copy-from')).textContent
-            : btn.hasAttribute('data-ps-copy') ? psCmd(btn.getAttribute('data-ps-copy')) : btn.getAttribute('data-copy');
-          write(text).then(function () {
-            clearTimeout(timer);
-            btn.classList.add('copied');
-            if (label) label.textContent = 'Copied';
-            live.textContent = '';
-            live.textContent = 'Copied to clipboard';
-            timer = setTimeout(function () {
-              btn.classList.remove('copied');
-              if (label) label.textContent = original;
-            }, 1600);
-          }, function () {});
+      var write = function (text) {
+        if (navigator.clipboard && window.isSecureContext) {
+          return navigator.clipboard.writeText(text).catch(function () { return legacy(text); });
+        }
+        return legacy(text);
+      };
+      var copy = function (btn, text) {
+        write(text).then(function () {
+          if (!btn.dataset.label) btn.dataset.label = btn.textContent;
+          btn.textContent = 'Copied!';
+          clearTimeout(btn._t);
+          btn._t = setTimeout(function () { btn.textContent = btn.dataset.label; }, 1500);
+        }, function () {});
+      };
+      $$('[data-copy-ps]').forEach(function (b) { b.addEventListener('click', function () { copy(b, psCmd(b.getAttribute('data-copy-ps'))); }); });
+      $$('[data-copy]').forEach(function (b) { b.addEventListener('click', function () { copy(b, b.getAttribute('data-copy')); }); });
+
+      /* ---------- windows ---------- */
+      var desk = $('#desk');
+      var tasks = $('#tasks');
+      var wins = $$('.win');
+      var canDrag = window.matchMedia('(min-width: 760px) and (pointer: fine)');
+      var z = 10, frozen = false;
+
+      var label = function (w) { return $('.title h2', w).textContent; };
+      var taskFor = function (w) { return tasks.querySelector('[data-win="' + w.id + '"]'); };
+      var isTop = function (w) { return !w.hidden && !w.classList.contains('min') && w.classList.contains('active'); };
+      var syncTasks = function () {
+        $$('.task', tasks).forEach(function (b) {
+          var on = isTop(document.getElementById(b.getAttribute('data-win')));
+          b.classList.toggle('on', on);
+          b.setAttribute('aria-pressed', String(on));
+        });
+      };
+      var addTask = function (w) {
+        if (taskFor(w)) return;
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'task';
+        b.setAttribute('data-win', w.id);
+        b.innerHTML = '<svg aria-hidden="true"><use href="' + w.getAttribute('data-icon') + '"/></svg><span></span>';
+        b.querySelector('span').textContent = label(w);
+        b.addEventListener('click', function () { isTop(w) ? minimize(w) : show(w); });
+        tasks.appendChild(b);
+      };
+      var focus = function (w) {
+        wins.forEach(function (x) { x.classList.toggle('active', x === w); });
+        w.style.zIndex = ++z;
+        syncTasks();
+      };
+      var focusNext = function () {
+        var open = wins.filter(function (x) { return !x.hidden && !x.classList.contains('min'); });
+        open.sort(function (a, b) { return (+b.style.zIndex || 0) - (+a.style.zIndex || 0); });
+        if (open.length) focus(open[0]);
+        else { wins.forEach(function (x) { x.classList.remove('active'); }); syncTasks(); }
+      };
+
+      // The windows start in a CSS layout. The first drag pins every window where it is, so they can move freely.
+      var pin = function (w, x, y, width) {
+        w.style.left = x + 'px';
+        w.style.top = y + 'px';
+        if (width) w.style.width = width + 'px';
+        w.setAttribute('data-pinned', '');
+      };
+      var freeze = function () {
+        if (frozen) return;
+        var d = desk.getBoundingClientRect();
+        var list = wins.filter(function (w) { return !w.classList.contains('dialog'); });
+        var rects = list.map(function (w) { return w.getBoundingClientRect(); });
+        desk.style.height = desk.offsetHeight + 'px';
+        list.forEach(function (w, i) { if (rects[i].width) pin(w, rects[i].left - d.left, rects[i].top - d.top, rects[i].width); });
+        desk.classList.add('frozen');
+        frozen = true;
+      };
+      var unfreeze = function () {
+        if (!frozen) return;
+        frozen = false;
+        desk.classList.remove('frozen');
+        desk.style.height = '';
+        wins.forEach(function (w) {
+          if (w.classList.contains('dialog')) return;
+          w.style.left = w.style.top = w.style.width = '';
+          w.removeAttribute('data-pinned');
+        });
+      };
+      var placeNew = function (w) {
+        if (w.hasAttribute('data-pinned')) return;
+        var d = desk.getBoundingClientRect();
+        var step = (z % 6) * 24;
+        pin(w, Math.min(160 + step, d.width - 320), Math.max(0, -d.top) + 40 + step, Math.min(600, d.width - 180));
+      };
+      var center = function (w) {
+        w.style.left = Math.max(8, (window.innerWidth - w.offsetWidth) / 2) + 'px';
+        w.style.top = Math.max(8, (window.innerHeight - 40 - w.offsetHeight) / 2) + 'px';
+      };
+
+      var show = function (w, reveal) {
+        var wasHidden = w.hidden;
+        w.hidden = false;
+        w.classList.remove('min');
+        if (w.classList.contains('dialog')) { if (wasHidden) center(w); }
+        else if (frozen) placeNew(w);
+        addTask(w);
+        focus(w);
+        if (reveal && !w.classList.contains('dialog') && !w.classList.contains('max')) {
+          var r = w.getBoundingClientRect();
+          if (r.top < 0 || r.top > window.innerHeight - 120) w.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+        }
+      };
+      var minimize = function (w) { w.classList.add('min'); w.classList.remove('active'); focusNext(); };
+      var close = function (w) {
+        w.hidden = true;
+        w.classList.remove('active', 'max');
+        var t = taskFor(w);
+        if (t) t.remove();
+        focusNext();
+      };
+      var toggleMax = function (w) {
+        var max = w.classList.toggle('max');
+        var b = $('[data-act="max"]', w);
+        if (b) b.setAttribute('aria-label', max ? 'Restore' : 'Maximize');
+        focus(w);
+      };
+
+      wins.forEach(function (w) {
+        var bar = $('.title', w);
+        w.addEventListener('pointerdown', function () { if (!w.classList.contains('active') || +w.style.zIndex < z) focus(w); });
+        $$('[data-act]', w).forEach(function (b) {
+          b.addEventListener('click', function () {
+            var a = b.getAttribute('data-act');
+            if (a === 'min') minimize(w); else if (a === 'max') toggleMax(w); else close(w);
+          });
+        });
+        bar.addEventListener('dblclick', function (e) { if (!e.target.closest('button') && canDrag.matches && $('[data-act="max"]', w)) toggleMax(w); });
+        bar.addEventListener('pointerdown', function (e) {
+          if (e.button !== 0 || e.target.closest('button') || !canDrag.matches || w.classList.contains('max')) return;
+          var dialog = w.classList.contains('dialog');
+          if (!dialog) freeze();
+          e.preventDefault();
+          focus(w);
+          var sx = e.clientX, sy = e.clientY;
+          var sl = parseFloat(w.style.left) || 0, st = parseFloat(w.style.top) || 0;
+          var room = dialog ? window.innerWidth : desk.clientWidth;
+          bar.setPointerCapture(e.pointerId);
+          var move = function (ev) {
+            var x = Math.min(Math.max(sl + ev.clientX - sx, 80 - w.offsetWidth), room - 80);
+            var y = Math.max(st + ev.clientY - sy, 0);
+            if (dialog) y = Math.min(y, window.innerHeight - 70);
+            w.style.left = x + 'px';
+            w.style.top = y + 'px';
+          };
+          var up = function () {
+            bar.removeEventListener('pointermove', move);
+            bar.removeEventListener('pointerup', up);
+            bar.removeEventListener('pointercancel', up);
+          };
+          bar.addEventListener('pointermove', move);
+          bar.addEventListener('pointerup', up);
+          bar.addEventListener('pointercancel', up);
         });
       });
+
+      var lastWidth = window.innerWidth;
+      window.addEventListener('resize', function () {
+        if (Math.abs(window.innerWidth - lastWidth) > 40) { unfreeze(); lastWidth = window.innerWidth; }
+      });
+
+      // Everything that opens a window: desktop icons, Start menu items, buttons.
+      $$('[data-open]').forEach(function (el) {
+        el.addEventListener('click', function () {
+          if (el.classList.contains('icon')) $$('.icon').forEach(function (i) { i.classList.toggle('sel', i === el); });
+          show(document.getElementById(el.getAttribute('data-open')), true);
+        });
+      });
+      desk.addEventListener('pointerdown', function (e) {
+        if (!e.target.closest('.icon')) $$('.icon').forEach(function (i) { i.classList.remove('sel'); });
+      });
+
+      wins.forEach(function (w) { if (!w.hidden) addTask(w); });
+      focus($('#w-welcome'));
+
+      /* ---------- tabs ---------- */
+      $$('[role="tablist"]').forEach(function (list) {
+        var tabs = $$('[role="tab"]', list);
+        var pick = function (t, moveFocus) {
+          tabs.forEach(function (x) {
+            var on = x === t;
+            x.setAttribute('aria-selected', String(on));
+            x.tabIndex = on ? 0 : -1;
+            document.getElementById(x.getAttribute('aria-controls')).hidden = !on;
+          });
+          if (moveFocus) t.focus();
+          list.dispatchEvent(new CustomEvent('pick', { detail: t.id }));
+        };
+        tabs.forEach(function (t, i) {
+          t.addEventListener('click', function () { pick(t); });
+          t.addEventListener('keydown', function (e) {
+            if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+            e.preventDefault();
+            pick(tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length], true);
+          });
+        });
+      });
+
+      // PowerShell tab vs npm tab: the window becomes a Command Prompt for npm.
+      var shell = $('#w-shell');
+      $('#shell-tabs').addEventListener('pick', function (e) {
+        var npm = e.detail === 'tab-npm';
+        var name = npm ? 'Command Prompt' : 'Windows PowerShell';
+        var icon = npm ? '#ico-cmd' : '#ico-ps';
+        $('#t-shell').textContent = name;
+        $('#shell-icon').setAttribute('href', icon);
+        shell.setAttribute('data-icon', icon);
+        $('#shell-hint').innerHTML = npm ? 'Needs <a href="https://nodejs.org">Node.js</a>. Works in any terminal.' : 'Paste it into PowerShell and press Enter. Nothing else to install.';
+        var t = taskFor(shell);
+        if (t) { t.querySelector('span').textContent = name; t.querySelector('use').setAttribute('href', icon); }
+      });
+      $('#shell-copy').addEventListener('click', function () {
+        var visible = $$('[role="tabpanel"]', shell).filter(function (p) { return !p.hidden; })[0];
+        copy(this, $('.c-cmd', visible).textContent);
+      });
+
+      /* ---------- help list ---------- */
+      var helpCopy = $('#help-copy');
+      var cmdOf = function (o) { return o.hasAttribute('data-ps') ? psCmd(o.getAttribute('data-ps')) : o.getAttribute('data-cmd'); };
+      $$('.listbox').forEach(function (lb) {
+        var opts = $$('[role="option"]', lb);
+        var select = function (o) {
+          opts.forEach(function (x) { x.setAttribute('aria-selected', String(x === o)); });
+          lb.setAttribute('aria-activedescendant', o.id);
+        };
+        select(opts[0]);
+        opts.forEach(function (o) {
+          o.addEventListener('click', function () { select(o); });
+          o.addEventListener('dblclick', function () { select(o); copy(helpCopy, cmdOf(o)); });
+        });
+        lb.addEventListener('keydown', function (e) {
+          var i = opts.findIndex(function (x) { return x.getAttribute('aria-selected') === 'true'; });
+          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            select(opts[Math.min(Math.max(i + (e.key === 'ArrowDown' ? 1 : -1), 0), opts.length - 1)]);
+          } else if (e.key === 'Enter') {
+            e.preventDefault();
+            copy(helpCopy, cmdOf(opts[i]));
+          }
+        });
+      });
+      helpCopy.addEventListener('click', function () {
+        var panel = $$('#w-help [role="tabpanel"]').filter(function (p) { return !p.hidden; })[0];
+        copy(helpCopy, cmdOf($('[aria-selected="true"]', panel)));
+      });
+      if (touch) $('#help-hint').textContent = 'Tap a command, then Copy.';
+
+      /* ---------- Start menu ---------- */
+      var start = $('#start'), menu = $('#startmenu');
+      var items = $$('.mi', menu);
+      var setMenu = function (open) {
+        menu.hidden = !open;
+        start.setAttribute('aria-expanded', String(open));
+      };
+      start.addEventListener('click', function () { setMenu(menu.hidden); });
+      start.addEventListener('keydown', function (e) {
+        if ((e.key === 'ArrowUp' || e.key === 'Enter' || e.key === ' ') && menu.hidden) { e.preventDefault(); setMenu(true); items[0].focus(); }
+      });
+      items.forEach(function (mi) { mi.addEventListener('click', function () { setMenu(false); }); });
+      menu.addEventListener('keydown', function (e) {
+        var i = items.indexOf(document.activeElement);
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus();
+        } else if (e.key === 'Escape') {
+          setMenu(false);
+          start.focus();
+        }
+      });
+      document.addEventListener('pointerdown', function (e) {
+        if (!menu.hidden && !menu.contains(e.target) && !start.contains(e.target)) setMenu(false);
+      });
+
+      /* ---------- clock ---------- */
+      var clock = $('#clock');
+      var tick = function () {
+        var now = new Date();
+        clock.textContent = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        clock.title = now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      };
+      tick();
+      setInterval(tick, 10000);
+
+      /* ---------- tray balloon ---------- */
+      var tray = $('#tray'), balloon = $('#balloon'), bTimer;
+      var say = function (title, text, ms) {
+        $('#b-title').textContent = title;
+        $('#b-text').textContent = text;
+        balloon.hidden = false;
+        var r = tray.getBoundingClientRect();
+        balloon.style.setProperty('--tail', Math.max(14, window.innerWidth - (r.left + r.width / 2) - 8 - 6) + 'px');
+        clearTimeout(bTimer);
+        bTimer = setTimeout(function () { balloon.hidden = true; }, ms || 3500);
+      };
+      $('#b-x').addEventListener('click', function () { balloon.hidden = true; });
+
+      /* ---------- the demo: status goes Idle unless notidle is on ----------
+         Sped up: Idle after 8 s without input; notidle nudges after 2.5 s (it waits 60 s in real life). */
+      var IDLE_AFTER = 8000, NUDGE_AFTER = 2500;
+      var on = false, idle = false, last = Date.now();
+      var profile = $('#profile'), bar = $('#bar'), meter = $('#meter'), msg = $('#msg');
+      var toggleBtn = $('#toggle'), cursor = $('#cursor'), nudged = $('#nudged');
+      var hands = touch ? 'Take your finger off the screen' : 'Take your hands off the mouse and keyboard';
+
+      var render = function () {
+        profile.classList.toggle('is-idle', idle);
+        $('#sb-st').textContent = 'Discord: ' + (idle ? 'Idle' : 'Online');
+        $('#sb-on').textContent = 'notidle: ' + (on ? 'ON' : 'OFF');
+        msg.textContent = on
+          ? 'notidle is on. It nudges the mouse 1 px before you would go Idle, so you stay green.'
+          : idle
+            ? 'You went Idle. Turn notidle on and you stay green.'
+            : hands + ' for a few seconds and watch your status.';
+      };
+      var setOn = function (v) {
+        on = v;
+        tray.classList.toggle('on', on);
+        tray.setAttribute('aria-pressed', String(on));
+        tray.title = 'notidle: ' + (on ? 'ON' : 'OFF') + ' (Ctrl+Alt+O)';
+        toggleBtn.setAttribute('aria-pressed', String(on));
+        toggleBtn.textContent = on ? 'Turn notidle off' : 'Turn notidle on';
+        say('notidle', on ? 'notidle is ON. Your status stays Online.' : 'notidle is OFF.');
+        render();
+      };
+      var nudge = function () {
+        last = Date.now();
+        idle = false;
+        render();
+        cursor.classList.add('nudge');
+        nudged.classList.add('show');
+        setTimeout(function () { cursor.classList.remove('nudge'); }, 150);
+        setTimeout(function () { nudged.classList.remove('show'); }, 900);
+      };
+      var activity = function () {
+        last = Date.now();
+        if (idle) { idle = false; render(); }
+      };
+      ['pointermove', 'pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(function (ev) {
+        window.addEventListener(ev, activity, { passive: true });
+      });
+      setInterval(function () {
+        var t = Date.now() - last;
+        if (on && t >= NUDGE_AFTER) { nudge(); t = 0; }
+        var pct = Math.min(t / IDLE_AFTER, 1) * 100;
+        bar.style.width = pct + '%';
+        meter.setAttribute('aria-valuenow', String(Math.round(pct)));
+        if (!idle && t >= IDLE_AFTER) { idle = true; render(); }
+      }, 100);
+
+      tray.addEventListener('click', function () { setOn(!on); });
+      toggleBtn.addEventListener('click', function () { setOn(!on); });
+      document.addEventListener('keydown', function (e) {
+        if (e.ctrlKey && e.altKey && !e.shiftKey && !e.metaKey && e.code === 'KeyO') {
+          e.preventDefault();
+          setOn(!on);
+        }
+      });
+      if (touch) $('#toggle-hint').textContent = 'or tap the dot in the taskbar';
+      render();
+
+      setTimeout(function () {
+        if (!on) say('Try it', touch ? 'Tap this dot to switch notidle on.' : 'Click this dot or press Ctrl+Alt+O to switch notidle on.', touch ? 6000 : 9000);
+      }, 1500);
     })();
   </script>
 </body>
